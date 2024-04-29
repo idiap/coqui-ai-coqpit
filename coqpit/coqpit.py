@@ -132,7 +132,7 @@ def _is_optional_field(field) -> bool:
         bool: True if the input field is optional.
     """
     # return isinstance(field.type, _GenericAlias) and type(None) in getattr(field.type, "__args__")
-    return type(None) in getattr(field.type, "__args__")
+    return type(None) in field.type.__args__
 
 
 def my_get_type_hints(
@@ -342,7 +342,6 @@ class Serializable:
         dataclass_fields = fields(self)
 
         for field in dataclass_fields:
-
             value = getattr(self, field.name)
 
             if value is None:
@@ -723,7 +722,7 @@ class Coqpit(Serializable, MutableMapping):
         Returns:
             Coqpit: new Coqpit with updated config fields.
         """
-        with open(file_name, "r", encoding="utf8") as f:
+        with open(file_name, encoding="utf8") as f:
             input_str = f.read()
             dump_dict = json.loads(input_str)
         # TODO: this looks stupid 💆

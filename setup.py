@@ -21,7 +21,7 @@ class build_py(setuptools.command.build_py.build_py):  # pylint: disable=too-man
         print("-- Building version " + version)
         version_path = os.path.join(cwd, "version.py")
         with open(version_path, "w") as f:
-            f.write("__version__ = '{}'\n".format(version))
+            f.write(f"__version__ = '{version}'\n")
 
 
 class develop(setuptools.command.develop.develop):
@@ -30,7 +30,7 @@ class develop(setuptools.command.develop.develop):
         setuptools.command.develop.develop.run(self)
 
 
-with open("README.md", "r", encoding="utf-8") as readme_file:
+with open("README.md", encoding="utf-8") as readme_file:
     README = readme_file.read()
 
 

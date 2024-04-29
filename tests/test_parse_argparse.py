@@ -114,8 +114,8 @@ def test_boolean_parse():
 
     try:
         config.parse_args(args)
-        assert False, "should not reach this"
-    except:  # pylint: disable=bare-except
+        assert False, "should not reach this"  # noqa: B011
+    except:  # noqa: E722
         pass
 
 
@@ -129,7 +129,7 @@ def test_argparse_with_required_field():
     try:
         c = ArgparseWithRequiredField()  # pylint: disable=no-value-for-parameter
         c.parse_args(args)
-        assert False
+        assert False  # noqa: B011
     except TypeError:
         # __init__ should fail due to missing val_a
         pass

@@ -32,9 +32,7 @@ class WithRequired(Coqpit):
 def test_new_from_dict():
     ref_config = Reference(name="Fancy", size=3**10, people=[Person(name="Anonymous", age=42)])
 
-    new_config = Reference.new_from_dict(
-        {"name": "Fancy", "size": 3**10, "people": [{"name": "Anonymous", "age": 42}]}
-    )
+    new_config = Reference.new_from_dict({"name": "Fancy", "size": 3**10, "people": [{"name": "Anonymous", "age": 42}]})
 
     # check values
     assert len(ref_config) == len(new_config)

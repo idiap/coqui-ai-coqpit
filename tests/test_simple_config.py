@@ -39,7 +39,7 @@ def test_simple_config():
 
     # try MISSING class argument
     try:
-        config.val_k
+        _ = config.val_k
     except AttributeError:
         print(" val_k needs a different value before accessing it.")
     config.val_k = 1000
