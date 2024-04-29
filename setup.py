@@ -40,6 +40,8 @@ setup(
     url="https://github.com/erogol/coqpit",
     author="Eren Gölge",
     author_email="egolge@coqui.ai",
+    maintainer="Enno Hermann",
+    maintainer_email="enno.hermann@gmail.com",
     description="Simple (maybe too simple), light-weight config management through python data-classes.",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -47,9 +49,9 @@ setup(
     include_package_data=True,
     packages=find_packages(include=["coqpit*"]),
     project_urls={
-        "Tracker": "https://github.com/coqui-ai/coqpit/issues",
-        "Repository": "https://github.com/coqui-ai/coqpit",
-        "Discussions": "https://github.com/coqui-ai/coqpit/discussions",
+        "Tracker": "https://github.com/idiap/coqui-ai-coqpit/issues",
+        "Repository": "https://github.com/idiap/coqui-ai-coqpit",
+        "Discussions": "https://github.com/idiap/coqui-ai-coqpit/discussions",
     },
     cmdclass={
         "build_py": build_py,
