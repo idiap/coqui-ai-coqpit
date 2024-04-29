@@ -30,7 +30,6 @@ class develop(setuptools.command.develop.develop):
         setuptools.command.develop.develop.run(self)
 
 
-requirements = open(os.path.join(cwd, "requirements.txt"), "r").readlines()
 with open("README.md", "r", encoding="utf-8") as readme_file:
     README = readme_file.read()
 
@@ -56,8 +55,8 @@ setup(
         "build_py": build_py,
         "develop": develop,
     },
-    install_requires=requirements,
-    python_requires=">=3.7.0",
+    install_requires=[],
+    python_requires=">=3.9.0",
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
