@@ -2,33 +2,7 @@
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
-[flake8]
-max-line-length=120
-
-[tool.black]
+[tool.ruff]
+target-version = "py39"
 line-length = 120
-target-version = ['py38']
-exclude = '''
-
-(
-  /(
-      \.eggs         # exclude a few common directories in the
-    | \.git          # root of the project
-    | \.hg
-    | \.mypy_cache
-    | \.tox
-    | \.venv
-    | _build
-    | buck-out
-    | build
-    | dist
-  )/
-  | foo.py           # also separately exclude a file named foo.py in
-                     # the root of the project
-)
-'''
-
-[tool.isort]
-line_length = 120
-profile = "black"
-multi_line_output = 3
+lint.extend-select = ["I", "UP", "B", "W", "A", "PLC", "PLE"]
