@@ -8,7 +8,7 @@ from dataclasses import MISSING as _MISSING
 from dataclasses import Field, asdict, dataclass, fields, is_dataclass, replace
 from pathlib import Path
 from pprint import pprint
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
+from typing import Any, Generic, Optional, TypeVar, Union
 
 T = TypeVar("T")
 MISSING: Any = "???"
@@ -47,7 +47,7 @@ def is_list(arg_type: Any) -> bool:
         bool: True if input type is `list`
     """
     try:
-        return arg_type is list or arg_type is List or arg_type.__origin__ is list or arg_type.__origin__ is List
+        return arg_type is list or arg_type is list or arg_type.__origin__ is list or arg_type.__origin__ is list
     except AttributeError:
         return False
 
@@ -62,7 +62,7 @@ def is_dict(arg_type: Any) -> bool:
         bool: True if input type is `dict`
     """
     try:
-        return arg_type is dict or arg_type is Dict or arg_type.__origin__ is dict
+        return arg_type is dict or arg_type is dict or arg_type.__origin__ is dict
     except AttributeError:
         return False
 
@@ -157,7 +157,7 @@ def _serialize(x):
     return x
 
 
-def _deserialize_dict(x: Dict) -> Dict:
+def _deserialize_dict(x: dict) -> dict:
     """Deserialize dict.
 
     Args:
@@ -175,7 +175,7 @@ def _deserialize_dict(x: Dict) -> Dict:
     return out_dict
 
 
-def _deserialize_list(x: List, field_type: Type) -> List:
+def _deserialize_list(x: list, field_type: type) -> list:
     """Deserialize values for List typed fields.
 
     Args:
@@ -205,7 +205,7 @@ def _deserialize_list(x: List, field_type: Type) -> List:
     return x
 
 
-def _deserialize_union(x: Any, field_type: Type) -> Any:
+def _deserialize_union(x: Any, field_type: type) -> Any:
     """Deserialize values for Union typed fields
 
     Args:
@@ -225,7 +225,7 @@ def _deserialize_union(x: Any, field_type: Type) -> Any:
     return x
 
 
-def _deserialize_primitive_types(x: Union[int, float, str, bool], field_type: Type) -> Union[int, float, str, bool]:
+def _deserialize_primitive_types(x: Union[int, float, str, bool], field_type: type) -> Union[int, float, str, bool]:
     """Deserialize python primitive types (float, int, str, bool).
     It handles `inf` values exclusively and keeps them float against int fields since int does not support inf values.
 
@@ -621,7 +621,7 @@ class Coqpit(Serializable, MutableMapping):
     def items(self):
         return asdict(self).items()
 
-    def merge(self, coqpits: Union["Coqpit", List["Coqpit"]]):
+    def merge(self, coqpits: Union["Coqpit", list["Coqpit"]]):
         """Merge a coqpit instance or a list of coqpit instances to self.
         Note that it does not pass the fields and overrides attributes with
         the last Coqpit instance in the given List.
@@ -714,7 +714,7 @@ class Coqpit(Serializable, MutableMapping):
 
     @classmethod
     def init_from_argparse(
-        cls, args: Optional[Union[argparse.Namespace, List[str]]] = None, arg_prefix: str = "coqpit"
+        cls, args: Optional[Union[argparse.Namespace, list[str]]] = None, arg_prefix: str = "coqpit"
     ) -> "Coqpit":
         """Create a new Coqpit instance from argparse input.
 
@@ -762,7 +762,7 @@ class Coqpit(Serializable, MutableMapping):
         return cls(**args_with_lists_processed)
 
     def parse_args(
-        self, args: Optional[Union[argparse.Namespace, List[str]]] = None, arg_prefix: str = "coqpit"
+        self, args: Optional[Union[argparse.Namespace, list[str]]] = None, arg_prefix: str = "coqpit"
     ) -> None:
         """Update config values from argparse arguments with some meta-programming ✨.
 
@@ -795,10 +795,10 @@ class Coqpit(Serializable, MutableMapping):
 
     def parse_known_args(
         self,
-        args: Optional[Union[argparse.Namespace, List[str]]] = None,
+        args: Optional[Union[argparse.Namespace, list[str]]] = None,
         arg_prefix: str = "coqpit",
         relaxed_parser=False,
-    ) -> List[str]:
+    ) -> list[str]:
         """Update config values from argparse arguments. Ignore unknown arguments.
            This is analog to argparse.ArgumentParser.parse_known_args (vs parse_args).
 

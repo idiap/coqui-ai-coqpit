@@ -1,6 +1,6 @@
 import os
 from dataclasses import asdict, dataclass, field
-from typing import List, Union
+from typing import Union
 
 from coqpit.coqpit import MISSING, Coqpit, check_argument
 
@@ -18,8 +18,8 @@ class SimpleConfig(Coqpit):
     # optional field
     val_dict: dict = field(default_factory=lambda: {"val_aa": 10, "val_ss": "This is in a dict."})
     # list of list
-    val_listoflist: List[List] = field(default_factory=lambda: [[1, 2], [3, 4]])
-    val_listofunion: List[List[Union[str, int, bool]]] = field(
+    val_listoflist: list[list] = field(default_factory=lambda: [[1, 2], [3, 4]])
+    val_listofunion: list[list[Union[str, int, bool]]] = field(
         default_factory=lambda: [[1, 3], [1, "Hi!"], [True, False]]
     )
 

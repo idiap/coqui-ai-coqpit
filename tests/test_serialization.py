@@ -1,6 +1,5 @@
 import os
 from dataclasses import dataclass, field
-from typing import List
 
 from coqpit import Coqpit
 
@@ -15,14 +14,14 @@ class Person(Coqpit):
 class Group(Coqpit):
     name: str = None
     size: int = None
-    people: List[Person] = None
+    people: list[Person] = None
 
 
 @dataclass
 class Reference(Coqpit):
     name: str = "Coqpit"
     size: int = 3
-    people: List[Person] = field(
+    people: list[Person] = field(
         default_factory=lambda: [
             Person(name="Eren", age=11),
             Person(name="Geren", age=12),
