@@ -128,7 +128,7 @@ def test_argparse_with_required_field():
     try:
         c = ArgparseWithRequiredField()  # pylint: disable=no-value-for-parameter
         c.parse_args(args)
-        assert False  # noqa: B011
+        raise AssertionError
     except TypeError:
         # __init__ should fail due to missing val_a
         pass

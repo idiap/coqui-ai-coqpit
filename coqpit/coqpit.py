@@ -1,14 +1,24 @@
+from __future__ import annotations
+
 import argparse
 import contextlib
 import functools
 import json
 import operator
-from collections.abc import MutableMapping
+from collections.abc import ItemsView, Iterator, MutableMapping
 from dataclasses import MISSING as _MISSING
 from dataclasses import Field, asdict, dataclass, fields, is_dataclass, replace
 from pathlib import Path
 from pprint import pprint
-from typing import Any, Generic, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar, Union
+
+from typing_extensions import Self
+
+if TYPE_CHECKING:
+    from builtins import _ClassInfo
+    from dataclasses import _MISSING_TYPE
+    from types import UnionType
+    from typing import _SpecialForm
 
 T = TypeVar("T")
 MISSING: Any = "???"
@@ -19,7 +29,7 @@ class _NoDefault(Generic[T]):
 
 
 NoDefaultVar = Union[_NoDefault[T], T]
-no_default: NoDefaultVar = _NoDefault()
+no_default: NoDefaultVar[Any] = _NoDefault()
 
 
 def is_primitive_type(arg_type: Any) -> bool:
@@ -82,7 +92,7 @@ def is_union(arg_type: Any) -> bool:
         return False
 
 
-def safe_issubclass(cls, classinfo) -> bool:
+def safe_issubclass(cls: type, classinfo: _ClassInfo | _SpecialForm) -> bool:
     """Check if the input type is a subclass of the given class.
 
     Args:
@@ -107,7 +117,7 @@ def _coqpit_json_default(obj: Any) -> Any:
     raise TypeError(msg)
 
 
-def _default_value(x: Field):
+def _default_value(x: Field[T]) -> T | _MISSING_TYPE:
     """Return the default value of the input Field.
 
     Args:
@@ -123,7 +133,7 @@ def _default_value(x: Field):
     return x.default
 
 
-def _is_optional_field(field) -> bool:
+def _is_optional_field(field: Field[Any]) -> bool:
     """Check if the input field is optional.
 
     Args:
@@ -133,10 +143,10 @@ def _is_optional_field(field) -> bool:
         bool: True if the input field is optional.
     """
     # return isinstance(field.type, _GenericAlias) and type(None) in getattr(field.type, "__args__")
-    return type(None) in field.type.__args__
+    return hasattr(field.type, "__args__") and type(None) in field.type.__args__
 
 
-def _serialize(x):
+def _serialize(x: Any) -> Any:
     """Pick the right serialization for the datatype of the given input.
 
     Args:
@@ -154,11 +164,11 @@ def _serialize(x):
     if isinstance(x, Serializable) or issubclass(type(x), Serializable):
         return x.serialize()
     if isinstance(x, type) and issubclass(x, Serializable):
-        return x.serialize(x)
+        return x.serialize(x())
     return x
 
 
-def _deserialize_dict(x: dict) -> dict:
+def _deserialize_dict(x: dict[Any, Any]) -> dict[Any, Any]:
     """Deserialize dict.
 
     Args:
@@ -167,7 +177,7 @@ def _deserialize_dict(x: dict) -> dict:
     Returns:
         Dict: deserialized dictionary.
     """
-    out_dict = {}
+    out_dict: dict[Any, Any] = {}
     for k, v in x.items():
         if v is None:  # if {'key':None}
             out_dict[k] = None
@@ -176,7 +186,7 @@ def _deserialize_dict(x: dict) -> dict:
     return out_dict
 
 
-def _deserialize_list(x: list, field_type: type) -> list:
+def _deserialize_list(x: list[Any], field_type: type) -> list[Any]:
     """Deserialize values for List typed fields.
 
     Args:
@@ -207,7 +217,7 @@ def _deserialize_list(x: list, field_type: type) -> list:
     return x
 
 
-def _deserialize_union(x: Any, field_type: type) -> Any:
+def _deserialize_union(x: Any, field_type: UnionType) -> Any:
     """Deserialize values for Union typed fields.
 
     Args:
@@ -227,7 +237,7 @@ def _deserialize_union(x: Any, field_type: type) -> Any:
     return x
 
 
-def _deserialize_primitive_types(x: Union[int, float, str, bool], field_type: type) -> Union[int, float, str, bool]:
+def _deserialize_primitive_types(x: int | float | str | bool, field_type: type) -> int | float | str | bool | None:
     """Deserialize python primitive types (float, int, str, bool).
 
     It handles `inf` values exclusively and keeps them float against int fields since int does not support inf values.
@@ -277,8 +287,8 @@ def _deserialize(x: Any, field_type: Any) -> Any:
 
 
 # Recursive setattr (supports dotted attr names)
-def rsetattr(obj, attr, val):
-    def _setitem(obj, attr, val):
+def rsetattr(obj: Coqpit, attr: str, val: Any):
+    def _setitem(obj, attr: str, val: Any):
         return operator.setitem(obj, int(attr), val)
 
     pre, _, post = attr.rpartition(".")
@@ -288,7 +298,7 @@ def rsetattr(obj, attr, val):
 
 
 # Recursive getattr (supports dotted attr names)
-def rgetattr(obj, attr, *args):
+def rgetattr(obj: Coqpit, attr: str, *args):
     def _getitem(obj, attr):
         return operator.getitem(obj, int(attr), *args)
 
@@ -300,14 +310,14 @@ def rgetattr(obj, attr, *args):
 
 
 # Recursive setitem (supports dotted attr names)
-def rsetitem(obj, attr, val):
+def rsetitem(obj: dict[str, Any], attr: str, val: Any):
     pre, _, post = attr.rpartition(".")
     return operator.setitem(rgetitem(obj, pre) if pre else obj, post, val)
 
 
 # Recursive getitem (supports dotted attr names)
-def rgetitem(obj, attr, *args):
-    def _getitem(obj, attr):
+def rgetitem(obj: dict[str, Any], attr: str, *args):
+    def _getitem(obj: dict[str, Any], attr: str):
         return operator.getitem(obj, int(attr) if attr.isnumeric() else attr, *args)
 
     return functools.reduce(_getitem, [obj, *attr.split(".")])
@@ -317,7 +327,7 @@ def rgetitem(obj, attr, *args):
 class Serializable:
     """Gives serialization ability to any inheriting dataclass."""
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self._validate_contracts()
         for key, value in self.__dict__.items():
             if value is no_default:
@@ -343,13 +353,11 @@ class Serializable:
     def validate(self) -> None:
         """Validate if object can serialize / deserialize correctly."""
         self._validate_contracts()
-        if self != self.__class__.deserialize(  # pylint: disable=no-value-for-parameter
-            json.loads(json.dumps(self.serialize())),
-        ):
+        if self != self.__class__().deserialize(json.loads(json.dumps(self.serialize()))):
             msg = "could not be deserialized with same value"
             raise ValueError(msg)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Transform serializable object to dict."""
         cls_fields = fields(self)
         o = {}
@@ -357,7 +365,7 @@ class Serializable:
             o[cls_field.name] = getattr(self, cls_field.name)
         return o
 
-    def serialize(self) -> dict:
+    def serialize(self) -> dict[str, Any]:
         """Serialize object to be json serializable representation."""
         if not is_dataclass(self):
             msg = "need to be decorated as dataclass"
@@ -373,8 +381,8 @@ class Serializable:
             o[field.name] = value
         return o
 
-    def deserialize(self, data: dict) -> "Serializable":
-        """Parse input dictionary and desrialize its fields to a dataclass.
+    def deserialize(self, data: dict[str, Any]) -> Self:
+        """Parse input dictionary and deserialize its fields to a dataclass.
 
         Returns:
             self: deserialized `self`.
@@ -396,7 +404,7 @@ class Serializable:
                 init_kwargs[field.name] = value
                 continue
             if value == MISSING:
-                msg = f"deserialized with unknown value for {field.name} in {self.__name__}"
+                msg = f"deserialized with unknown value for {field.name} in {self.__class__.__name__}"
                 raise ValueError(msg)
             value = _deserialize(value, field.type)
             init_kwargs[field.name] = value
@@ -405,7 +413,7 @@ class Serializable:
         return self
 
     @classmethod
-    def deserialize_immutable(cls, data: dict) -> "Serializable":
+    def deserialize_immutable(cls, data: dict[str, Any]) -> Self:
         """Parse input dictionary and desrialize its fields to a dataclass.
 
         Returns:
@@ -445,28 +453,28 @@ class Serializable:
 # ---------------------------------------------------------------------------- #
 
 
-def _get_help(field):
+def _get_help(field: Field[Any]) -> str:
     try:
-        field_help = field.metadata["help"]
+        field_help = str(field.metadata["help"])
     except KeyError:
         field_help = ""
     return field_help
 
 
 def _init_argparse(
-    parser,
-    field_name,
-    field_type,
-    field_default,
-    field_default_factory,
-    field_help,
-    arg_prefix="",
-    help_prefix="",
+    parser: argparse.ArgumentParser,
+    field_name: str,
+    field_type: type,
+    field_default: Any,
+    field_default_factory: Callable[[], Any] | _MISSING_TYPE,
+    field_help: str,
+    arg_prefix: str = "",
+    help_prefix: str = "",
     *,
     relaxed_parser: bool = False,
-):
-    has_default = False
+) -> argparse.ArgumentParser:
     default = None
+    has_default = False
     if field_default:
         has_default = True
         default = field_default
@@ -517,6 +525,7 @@ def _init_argparse(
         else:
             # If a default value is defined, just enable editing the values from argparse
             # TODO: allow inserting a new value/obj to the end of the list.
+            assert isinstance(default, list)
             for idx, fv in enumerate(default):
                 parser = _init_argparse(
                     parser,
@@ -534,7 +543,8 @@ def _init_argparse(
         if not relaxed_parser:
             msg = " [!] Parsing `Union` field from argparse is not yet implemented. Please create an issue."
             raise NotImplementedError(msg)
-    elif issubclass(field_type, Serializable):
+    elif issubclass(field_type, Coqpit):
+        assert isinstance(default, Coqpit)
         return default.init_argparse(
             parser,
             arg_prefix=arg_prefix,
@@ -543,7 +553,7 @@ def _init_argparse(
         )
     elif isinstance(field_type(), bool):
 
-        def parse_bool(x):
+        def parse_bool(x: str) -> bool:
             if x not in ("true", "false"):
                 msg = f' [!] Value for boolean field must be either "true" or "false". Got "{x}".'
                 raise ValueError(msg)
@@ -575,7 +585,7 @@ def _init_argparse(
 
 
 @dataclass
-class Coqpit(Serializable, MutableMapping):
+class Coqpit(Serializable, MutableMapping[str, Any]):
     """Coqpit base class to be inherited by any Coqpit dataclasses.
 
     It overrides Python `dict` interface and provides `dict` compatible API.
@@ -585,7 +595,7 @@ class Coqpit(Serializable, MutableMapping):
 
     _initialized = False
 
-    def _is_initialized(self):
+    def _is_initialized(self) -> bool:
         """Check if Coqpit is initialized.
 
         Useful to prevent running some aux functions
@@ -593,14 +603,14 @@ class Coqpit(Serializable, MutableMapping):
         """
         return "_initialized" in vars(self) and self._initialized
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self._initialized = True
         with contextlib.suppress(AttributeError):
             self.check_values()
 
     ## `dict` API functions
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return iter(asdict(self))
 
     def __len__(self) -> int:
@@ -609,19 +619,19 @@ class Coqpit(Serializable, MutableMapping):
     def __setitem__(self, arg: str, value: Any) -> None:
         setattr(self, arg, value)
 
-    def __getitem__(self, arg: str):
+    def __getitem__(self, arg: str) -> Any:
         """Access class attributes with ``[arg]``."""
         return self.__dict__[arg]
 
     def __delitem__(self, arg: str) -> None:
         delattr(self, arg)
 
-    def _keytransform(self, key):  # pylint: disable=no-self-use
+    def _keytransform(self, key: str) -> str:  # pylint: disable=no-self-use
         return key
 
     ## end `dict` API functions
 
-    def __getattribute__(self, arg: str):  # pylint: disable=no-self-use
+    def __getattribute__(self, arg: str) -> Any:  # pylint: disable=no-self-use
         """Check if the mandatory field is defined when accessing it."""
         value = super().__getattribute__(arg)
         if isinstance(value, str) and value == "???":
@@ -629,18 +639,18 @@ class Coqpit(Serializable, MutableMapping):
             raise AttributeError(msg)
         return value
 
-    def __contains__(self, arg: str) -> bool:
+    def __contains__(self, arg: object) -> bool:
         return arg in self.to_dict()
 
-    def get(self, key: str, default: Any = None):
+    def get(self, key: str, default: Any = None) -> Any:
         if self.has(key):
             return asdict(self)[key]
         return default
 
-    def items(self):
+    def items(self) -> ItemsView[str, Any]:
         return asdict(self).items()
 
-    def merge(self, coqpits: Union["Coqpit", list["Coqpit"]]) -> None:
+    def merge(self, coqpits: Coqpit | list[Coqpit]) -> None:
         """Merge a coqpit instance or a list of coqpit instances to self.
 
         Note that it does not pass the fields and overrides attributes with
@@ -651,7 +661,7 @@ class Coqpit(Serializable, MutableMapping):
             coqpits (Union[Coqpit, List[Coqpit]]): coqpit instance or list of instances to be merged.
         """
 
-        def _merge(coqpit) -> None:
+        def _merge(coqpit: Coqpit) -> None:
             self.__dict__.update(coqpit.__dict__)
             self.__annotations__.update(coqpit.__annotations__)
             self.__dataclass_fields__.update(coqpit.__dataclass_fields__)
@@ -668,10 +678,10 @@ class Coqpit(Serializable, MutableMapping):
     def has(self, arg: str) -> bool:
         return arg in vars(self)
 
-    def copy(self):
+    def copy(self) -> Self:
         return replace(self)
 
-    def update(self, new: dict, allow_new: bool = False) -> None:
+    def update(self, new: dict[str, Any], allow_new: bool = False) -> None:
         """Update Coqpit fields by the input ```dict```.
 
         Args:
@@ -689,15 +699,16 @@ class Coqpit(Serializable, MutableMapping):
         """Print Coqpit fields in a format."""
         pprint(asdict(self))
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         # return asdict(self)
         return self.serialize()
 
-    def from_dict(self, data: dict) -> None:
+    def from_dict(self, data: dict[str, Any]) -> None:
+        # TODO: fix
         self = self.deserialize(data)  # pylint: disable=self-cls-assignment
 
     @classmethod
-    def new_from_dict(cls: Serializable, data: dict) -> "Coqpit":
+    def new_from_dict(cls, data: dict[str, Any]) -> Self:
         return cls.deserialize_immutable(data)
 
     def to_json(self) -> str:
@@ -734,9 +745,9 @@ class Coqpit(Serializable, MutableMapping):
     @classmethod
     def init_from_argparse(
         cls,
-        args: Optional[Union[argparse.Namespace, list[str]]] = None,
+        args: argparse.Namespace | list[str] | None = None,
         arg_prefix: str = "coqpit",
-    ) -> "Coqpit":
+    ) -> Self:
         """Create a new Coqpit instance from argparse input.
 
         Args:
@@ -745,12 +756,14 @@ class Coqpit(Serializable, MutableMapping):
         """
         if not args:
             # If args was not specified, parse from sys.argv
-            parser = cls.init_argparse(cls, arg_prefix=arg_prefix)
-            args = parser.parse_args()  # pylint: disable=E1120, E1111
+            parser = cls().init_argparse(arg_prefix=arg_prefix)
+            args = parser.parse_args()
         if isinstance(args, list):
-            # If a list was passed in (eg. the second result of `parse_known_args`, run that through argparse first to get a parsed Namespace
+            # If a list was passed in (eg. the second result of
+            # `parse_known_args`, run that through argparse first to get a
+            # parsed Namespace
             parser = cls.init_argparse(cls, arg_prefix=arg_prefix)
-            args = parser.parse_args(args)  # pylint: disable=E1120, E1111
+            args = parser.parse_args(args)
 
         # Handle list and object attributes with defaults, which can be modified
         # directly (eg. --coqpit.list.0.val_a 1), by constructing real objects
@@ -784,7 +797,7 @@ class Coqpit(Serializable, MutableMapping):
 
     def parse_args(
         self,
-        args: Optional[Union[argparse.Namespace, list[str]]] = None,
+        args: argparse.Namespace | list[str] | None = None,
         arg_prefix: str = "coqpit",
     ) -> None:
         """Update config values from argparse arguments with some meta-programming ✨.
@@ -819,7 +832,7 @@ class Coqpit(Serializable, MutableMapping):
 
     def parse_known_args(
         self,
-        args: Optional[Union[argparse.Namespace, list[str]]] = None,
+        args: argparse.Namespace | list[str] | None = None,
         arg_prefix: str = "coqpit",
         relaxed_parser: bool = False,
     ) -> list[str]:
@@ -849,9 +862,9 @@ class Coqpit(Serializable, MutableMapping):
 
     def init_argparse(
         self,
-        parser: Optional[argparse.ArgumentParser] = None,
-        arg_prefix="coqpit",
-        help_prefix="",
+        parser: argparse.ArgumentParser | None = None,
+        arg_prefix: str = "coqpit",
+        help_prefix: str = "",
         relaxed_parser: bool = False,
     ) -> argparse.ArgumentParser:
         """Pass Coqpit fields as argparse arguments. This allows to edit values through command-line.
@@ -890,15 +903,15 @@ class Coqpit(Serializable, MutableMapping):
 
 
 def check_argument(
-    name,
-    c,
+    name: str,
+    c: dict[str, Any],
     is_path: bool = False,
-    prerequest: Optional[str] = None,
-    enum_list: Optional[list] = None,
-    max_val: Optional[float] = None,
-    min_val: Optional[float] = None,
+    prerequest: str | None = None,
+    enum_list: list[Any] | None = None,
+    max_val: float | None = None,
+    min_val: float | None = None,
     restricted: bool = False,
-    alternative: Optional[str] = None,
+    alternative: str | None = None,
     allow_none: bool = True,
 ) -> None:
     """Simple type and value checking for Coqpit.
@@ -942,7 +955,7 @@ def check_argument(
     if is_path:
         assert Path(c[name]).exists(), f' [!] path for {name} ("{c[name]}") does not exist.'
     # skip the rest if the alternative field is defined.
-    if alternative in c and c[alternative] is not None:
+    if alternative is not None and alternative in c and c[alternative] is not None:
         return
     # check value constraints
     if name in c:

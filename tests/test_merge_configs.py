@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 from coqpit.coqpit import Coqpit
 
@@ -6,7 +7,7 @@ from coqpit.coqpit import Coqpit
 @dataclass
 class CoqpitA(Coqpit):
     val_a: int = 10
-    val_b: int = None
+    val_b: Optional[int] = None
     val_c: str = "Coqpit is great!"
     val_same: float = 10.21
 
@@ -22,21 +23,21 @@ class CoqpitB(Coqpit):
 @dataclass
 class Reference(Coqpit):
     val_a: int = 10
-    val_b: int = None
+    val_b: Optional[int] = None
     val_c: str = "Coqpit is great!"
     val_e: int = 257
     val_f: float = -10.21
     val_g: str = "Coqpit is really great!"
-    val_same: int = 10.21  # duplicate fields are override by the merged Coqpit class.
+    val_same: float = 10.21  # duplicate fields are override by the merged Coqpit class.
 
 
-def test_config_merge():
+def test_config_merge() -> None:
     coqpit_ref = Reference()
     coqpita = CoqpitA()
     coqpitb = CoqpitB()
     coqpitb.merge(coqpita)
     print(coqpitb.val_a)
-    print(coqpitb.pprint())
+    coqpitb.pprint()
 
     assert coqpit_ref.val_a == coqpitb.val_a
     assert coqpit_ref.val_b == coqpitb.val_b
