@@ -1,4 +1,0 @@
-ruff
-pre-commit
-pytest
-coverage

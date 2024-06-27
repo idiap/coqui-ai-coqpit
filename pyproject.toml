@@ -2,7 +2,55 @@
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.packages.find]
+include = ["coqpit*"]
+
+[project]
+name = "coqpit"
+version = "0.0.17"
+description = "Simple (maybe too simple), light-weight config management through python data-classes."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Eren Gölge", email = "egolge@coqui.ai"}
+]
+maintainers = [
+    {name = "Enno Hermann", email = "enno.hermann@gmail.com"}
+]
+classifiers = [
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+]
+dependencies = []
+
+[project.optional-dependencies]
+# Development dependencies
+dev = [
+    "coverage",
+    "pre-commit",
+    "pytest",
+    "ruff==0.4.2",
+]
+
+[project.urls]
+Repository = "https://github.com/idiap/coqui-ai-coqpit"
+Issues = "https://github.com/idiap/coqui-ai-coqpit/issues"
+
 [tool.ruff]
 target-version = "py39"
 line-length = 120
-lint.extend-select = ["I", "UP", "B", "W", "A", "PLC", "PLE"]
+lint.extend-select = ["I", "B", "W", "A", "PLC", "PLE"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
