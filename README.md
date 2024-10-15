@@ -294,5 +294,5 @@ if __name__ == '__main__':
 Install the pre-commit hook to automatically check your commits for style and hinting issues:
 
 ```bash
-pre-commit install
+uv run pre-commit install
 ```

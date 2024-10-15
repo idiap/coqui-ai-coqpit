@@ -34,13 +34,12 @@ classifiers = [
 ]
 dependencies = []
 
-[project.optional-dependencies]
-# Development dependencies
-dev = [
-    "coverage",
-    "pre-commit",
-    "pytest",
-    "ruff==0.4.2",
+[tool.uv]
+dev-dependencies = [
+    "coverage>=7",
+    "pre-commit>=3",
+    "pytest>=8",
+    "ruff==0.6.9",
 ]
 
 [project.urls]
