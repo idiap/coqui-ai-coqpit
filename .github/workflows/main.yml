@@ -7,43 +7,26 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 jobs:
-  check_skip:
-    runs-on: ubuntu-latest
-    if: "! contains(github.event.head_commit.message, '[ci skip]')"
-    steps:
-      - run: echo "${{ github.event.head_commit.message }}"
-
   test:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.7, 3.8, 3.9, "3.10"]
+        python-version: [3.9, "3.10", "3.11", "3.12", "3.13"]
 
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
         with:
-          python-version: ${{ matrix.python-version }}
-      - name: check OS
-        run: cat /etc/os-release
-      - name: Install Make
-        run: |
-          sudo apt-get update
-          sudo apt-get install --reinstall make
-      - name: Upgrade pip
-        run: python3 -m pip install --upgrade pip
-      - name: Install Coqpit
-        run: |
-          pip install -r requirements_dev.txt
-          pip install -r requirements.txt
-          pip install -e .
+          version: "0.4.21"
+          enable-cache: true
+          cache-dependency-glob: "**/pyproject.toml"
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
       - name: Lint check
         run: make lint
       - name: Unit tests
         run: make test
       - name: Test package build
-        run: |
-          pip install build
-          python -m build
+        run: uv build

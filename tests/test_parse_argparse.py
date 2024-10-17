@@ -114,8 +114,8 @@ def test_boolean_parse():
 
     try:
         config.parse_args(args)
-        assert False, "should not reach this"
-    except:  # pylint: disable=bare-except
+        assert False, "should not reach this"  # noqa: B011
+    except:  # noqa: E722
         pass
 
 
@@ -129,7 +129,7 @@ def test_argparse_with_required_field():
     try:
         c = ArgparseWithRequiredField()  # pylint: disable=no-value-for-parameter
         c.parse_args(args)
-        assert False
+        assert False  # noqa: B011
     except TypeError:
         # __init__ should fail due to missing val_a
         pass
@@ -148,7 +148,7 @@ def test_init_argparse_list_and_nested():
         val_req: str  # required field
         val_a: int = field(default=10, metadata={"help": "this is val_a of SimpleConfig2"})
         val_b: int = field(default=None, metadata={"help": "this is val_b"})
-        nested_config: SimplerConfig2 = SimplerConfig2()
+        nested_config: SimplerConfig2 = field(default_factory=lambda: SimplerConfig2())
         mylist_with_default: List[SimplerConfig2] = field(
             default_factory=lambda: [SimplerConfig2(val_a=100), SimplerConfig2(val_a=999)],
             metadata={"help": "list of SimplerConfig2"},

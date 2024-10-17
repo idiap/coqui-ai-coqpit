@@ -1,10 +1,11 @@
 # 👩‍✈️ Coqpit
 
-[![CI](https://github.com/coqui-ai/coqpit/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/coqui-ai/coqpit/actions/workflows/main.yml)
+[![CI](https://github.com/idiap/coqui-ai-coqpit/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/idiap/coqui-ai-coqpit/actions/workflows/main.yml)
 
 Simple, light-weight and no dependency config handling through python data classes with to/from JSON serialization/deserialization.
 
-Currently it is being used by [🐸TTS](https://github.com/coqui-ai/TTS).
+Currently it is being used by [🐸TTS](https://github.com/idiap/coqui-ai-TTS).
+
 ## ❔ Why I need this
 What I need from a ML configuration library...
 
@@ -293,7 +294,5 @@ if __name__ == '__main__':
 Install the pre-commit hook to automatically check your commits for style and hinting issues:
 
 ```bash
-$ python .pre-commit-2.12.1.pyz install
+uv run pre-commit install
 ```
-
-<img src="https://static.scarf.sh/a.png?x-pxid=cd0232a8-ead2-4f1f-87f5-0dd8ec33ee51" />

@@ -8,7 +8,7 @@ from dataclasses import MISSING as _MISSING
 from dataclasses import Field, asdict, dataclass, fields, is_dataclass, replace
 from pathlib import Path
 from pprint import pprint
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union, get_type_hints
+from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
 
 T = TypeVar("T")
 MISSING: Any = "???"
@@ -132,24 +132,7 @@ def _is_optional_field(field) -> bool:
         bool: True if the input field is optional.
     """
     # return isinstance(field.type, _GenericAlias) and type(None) in getattr(field.type, "__args__")
-    return type(None) in getattr(field.type, "__args__")
-
-
-def my_get_type_hints(
-    cls,
-):
-    """Custom `get_type_hints` dealing with https://github.com/python/typing/issues/737
-
-    Returns:
-        [dataclass]: dataclass to get the type hints of its fields.
-    """
-    r_dict = {}
-    for base in cls.__class__.__bases__:
-        if base == object:
-            break
-        r_dict.update(my_get_type_hints(base))
-    r_dict.update(get_type_hints(cls))
-    return r_dict
+    return type(None) in field.type.__args__
 
 
 def _serialize(x):
@@ -342,7 +325,6 @@ class Serializable:
         dataclass_fields = fields(self)
 
         for field in dataclass_fields:
-
             value = getattr(self, field.name)
 
             if value is None:
@@ -723,7 +705,7 @@ class Coqpit(Serializable, MutableMapping):
         Returns:
             Coqpit: new Coqpit with updated config fields.
         """
-        with open(file_name, "r", encoding="utf8") as f:
+        with open(file_name, encoding="utf8") as f:
             input_str = f.read()
             dump_dict = json.loads(input_str)
         # TODO: this looks stupid 💆
