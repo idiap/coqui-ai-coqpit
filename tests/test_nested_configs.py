@@ -1,6 +1,6 @@
 import os
 from dataclasses import asdict, dataclass, field
-from typing import List, Union
+from typing import Union
 
 from coqpit import Coqpit, check_argument
 
@@ -26,9 +26,9 @@ class NestedConfig(Coqpit):
     val_d: int = 10
     val_e: int = None
     val_f: str = "Coqpit is great!"
-    sc_list: List[SimpleConfig] = None
+    sc_list: list[SimpleConfig] = None
     sc: SimpleConfig = field(default_factory=lambda: SimpleConfig())
-    union_var: Union[List[SimpleConfig], SimpleConfig] = field(default_factory=lambda: [SimpleConfig(), SimpleConfig()])
+    union_var: Union[list[SimpleConfig], SimpleConfig] = field(default_factory=lambda: [SimpleConfig(), SimpleConfig()])
 
     def check_values(
         self,

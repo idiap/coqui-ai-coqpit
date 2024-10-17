@@ -1,5 +1,4 @@
 from dataclasses import asdict, dataclass, field
-from typing import List
 
 from coqpit.coqpit import Coqpit, check_argument
 
@@ -14,7 +13,7 @@ class SimpleConfig(Coqpit):
     val_a: int = field(default=10, metadata={"help": "this is val_a of SimpleConfig"})
     val_b: int = field(default=None, metadata={"help": "this is val_b"})
     val_c: str = "Coqpit is great!"
-    mylist_with_default: List[SimplerConfig] = field(
+    mylist_with_default: list[SimplerConfig] = field(
         default_factory=lambda: [SimplerConfig(val_a=100), SimplerConfig(val_a=999)],
         metadata={"help": "list of SimplerConfig"},
     )

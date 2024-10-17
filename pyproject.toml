@@ -49,7 +49,7 @@ Issues = "https://github.com/idiap/coqui-ai-coqpit/issues"
 [tool.ruff]
 target-version = "py39"
 line-length = 120
-lint.extend-select = ["I", "B", "W", "A", "PLC", "PLE"]
+lint.extend-select = ["I", "UP", "B", "W", "A", "PLC", "PLE"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
