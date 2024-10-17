@@ -33,12 +33,13 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
 ]
 dependencies = [
-    "typing_extensions>=4.0",
+    "typing_extensions>=4.10",
 ]
 
 [tool.uv]
 dev-dependencies = [
     "coverage>=7",
+    "mypy>=1.12.0",
     "pre-commit>=3",
     "pytest>=8",
     "ruff==0.6.9",
