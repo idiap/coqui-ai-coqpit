@@ -215,7 +215,7 @@ def _deserialize_union(x: Any, field_type: type) -> Any:
         field_type (Type): field type.
 
     Returns:
-        [Any]: desrialized value.
+        [Any]: deserialized value.
     """
     for arg in field_type.__args__:
         # stop after first matching type in Union
@@ -251,7 +251,7 @@ def _deserialize_primitive_types(x: Union[int, float, str, bool], field_type: ty
 
 
 def _deserialize(x: Any, field_type: Any) -> Any:
-    """Pick the right desrialization for the given object and the corresponding field type.
+    """Pick the right deserialization for the given object and the corresponding field type.
 
     Args:
         x (object): object to be deserialized.
@@ -374,7 +374,7 @@ class Serializable:
         return o
 
     def deserialize(self, data: dict) -> "Serializable":
-        """Parse input dictionary and desrialize its fields to a dataclass.
+        """Parse input dictionary and deserialize its fields to a dataclass.
 
         Returns:
             self: deserialized `self`.
@@ -406,7 +406,7 @@ class Serializable:
 
     @classmethod
     def deserialize_immutable(cls, data: dict) -> "Serializable":
-        """Parse input dictionary and desrialize its fields to a dataclass.
+        """Parse input dictionary and deserialize its fields to a dataclass.
 
         Returns:
             Newly created deserialized object.
@@ -854,7 +854,9 @@ class Coqpit(Serializable, MutableMapping):
         help_prefix="",
         relaxed_parser: bool = False,
     ) -> argparse.ArgumentParser:
-        """Pass Coqpit fields as argparse arguments. This allows to edit values through command-line.
+        """Create an argparse parser that can parse the Coqpit fields.
+
+        This allows to edit values through command-line.
 
         Args:
             parser (argparse.ArgumentParser, optional): argparse.ArgumentParser instance. If unspecified a new one will be created.
