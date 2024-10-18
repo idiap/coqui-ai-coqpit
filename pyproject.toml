@@ -32,7 +32,9 @@ classifiers = [
     "Operating System :: MacOS",
     "Operating System :: Microsoft :: Windows",
 ]
-dependencies = []
+dependencies = [
+    "typing_extensions>=4.10",
+]
 
 [tool.uv]
 dev-dependencies = [
