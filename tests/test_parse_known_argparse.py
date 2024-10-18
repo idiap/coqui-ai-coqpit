@@ -1,26 +1,25 @@
 from dataclasses import asdict, dataclass, field
+from typing import Optional
 
 from coqpit.coqpit import Coqpit, check_argument
 
 
 @dataclass
 class SimplerConfig(Coqpit):
-    val_a: int = field(default=None, metadata={"help": "this is val_a"})
+    val_a: Optional[int] = field(default=None, metadata={"help": "this is val_a"})
 
 
 @dataclass
 class SimpleConfig(Coqpit):
     val_a: int = field(default=10, metadata={"help": "this is val_a of SimpleConfig"})
-    val_b: int = field(default=None, metadata={"help": "this is val_b"})
+    val_b: Optional[int] = field(default=None, metadata={"help": "this is val_b"})
     val_c: str = "Coqpit is great!"
     mylist_with_default: list[SimplerConfig] = field(
         default_factory=lambda: [SimplerConfig(val_a=100), SimplerConfig(val_a=999)],
         metadata={"help": "list of SimplerConfig"},
     )
 
-    def check_values(
-        self,
-    ):
+    def check_values(self) -> None:
         """Check config fields"""
         c = asdict(self)
         check_argument("val_a", c, restricted=True, min_val=10, max_val=2056)
@@ -28,7 +27,7 @@ class SimpleConfig(Coqpit):
         check_argument("val_c", c, restricted=True)
 
 
-def test_parse_argparse():
+def test_parse_argparse() -> None:
     unknown_args = ["--coqpit.arg_does_not_exist", "111"]
     args = []
     args.extend(["--coqpit.val_a", "222"])
@@ -40,7 +39,7 @@ def test_parse_argparse():
 
     # initial config
     config = SimpleConfig()
-    print(config.pprint())
+    config.pprint()
 
     # reference config that we like to match with the config above
     config_ref = SimpleConfig(
@@ -62,7 +61,7 @@ def test_parse_argparse():
     assert unknown == unknown_args
 
 
-def test_parse_edited_argparse():
+def test_parse_edited_argparse() -> None:
     """calling `parse_known_argparse` after some modifications in the config values.
     `parse_known_argparse` should keep the modified values if not defined in argv"""
 
@@ -77,7 +76,7 @@ def test_parse_edited_argparse():
     config.val_b = 444
     config.val_c = "this is different"
     config.mylist_with_default[0].val_a = 777
-    print(config.pprint())
+    config.pprint()
 
     # reference config that we like to match with the config above
     config_ref = SimpleConfig(

@@ -1,12 +1,13 @@
 from dataclasses import dataclass, field
+from typing import Optional
 
 from coqpit import Coqpit
 
 
 @dataclass
 class Person(Coqpit):
-    name: str = None
-    age: int = None
+    name: Optional[str] = None
+    age: Optional[int] = None
 
 
 @dataclass
@@ -28,7 +29,7 @@ class WithRequired(Coqpit):
     name: str
 
 
-def test_new_from_dict():
+def test_new_from_dict() -> None:
     ref_config = Reference(name="Fancy", size=3**10, people=[Person(name="Anonymous", age=42)])
 
     new_config = Reference.new_from_dict({"name": "Fancy", "size": 3**10, "people": [{"name": "Anonymous", "age": 42}]})

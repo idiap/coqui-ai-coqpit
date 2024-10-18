@@ -1,36 +1,35 @@
 from dataclasses import asdict, dataclass, field
+from typing import Optional
 
 from coqpit.coqpit import Coqpit, check_argument
 
 
 @dataclass
 class SimplerConfig(Coqpit):
-    val_a: int = field(default=None, metadata={"help": "this is val_a"})
+    val_a: Optional[int] = field(default=None, metadata={"help": "this is val_a"})
 
 
 @dataclass
 class SimpleConfig(Coqpit):
     val_a: int = field(default=10, metadata={"help": "this is val_a of SimpleConfig"})
-    val_b: int = field(default=None, metadata={"help": "this is val_b"})
+    val_b: Optional[int] = field(default=None, metadata={"help": "this is val_b"})
     val_c: str = "Coqpit is great!"
-    val_dict: dict = field(default_factory=lambda: {"val_a": 100, "val_b": 200, "val_c": 300})
+    val_dict: dict[str, int] = field(default_factory=lambda: {"val_a": 100, "val_b": 200, "val_c": 300})
     mylist_with_default: list[SimplerConfig] = field(
         default_factory=lambda: [SimplerConfig(val_a=100), SimplerConfig(val_a=999)],
         metadata={"help": "list of SimplerConfig"},
     )
     int_list: list[int] = field(default_factory=lambda: [1, 2, 3], metadata={"help": "int"})
     str_list: list[str] = field(default_factory=lambda: ["veni", "vidi", "vici"], metadata={"help": "str"})
-    empty_int_list: list[int] = field(default=None, metadata={"help": "int list without default value"})
-    empty_str_list: list[str] = field(default=None, metadata={"help": "str list without default value"})
+    empty_int_list: Optional[list[int]] = field(default=None, metadata={"help": "int list without default value"})
+    empty_str_list: Optional[list[str]] = field(default=None, metadata={"help": "str list without default value"})
     list_with_default_factory: list[str] = field(
         default_factory=list, metadata={"help": "str list with default factory"}
     )
 
     # mylist_without_default: List[SimplerConfig] = field(default=None, metadata={'help': 'list of SimplerConfig'})  # NOT SUPPORTED YET!
 
-    def check_values(
-        self,
-    ):
+    def check_values(self) -> None:
         """Check config fields"""
         c = asdict(self)
         check_argument("val_a", c, restricted=True, min_val=10, max_val=2056)
@@ -38,7 +37,7 @@ class SimpleConfig(Coqpit):
         check_argument("val_c", c, restricted=True)
 
 
-def test_parse_argparse():
+def test_parse_argparse() -> None:
     args = []
     args.extend(["--coqpit.val_a", "222"])
     args.extend(["--coqpit.val_b", "999"])
@@ -54,7 +53,7 @@ def test_parse_argparse():
 
     # initial config
     config = SimpleConfig()
-    print(config.pprint())
+    config.pprint()
 
     # reference config that we like to match with the config above
     config_ref = SimpleConfig(
@@ -81,7 +80,7 @@ def test_parse_argparse():
     assert config == config_ref
 
 
-def test_boolean_parse():
+def test_boolean_parse() -> None:
     @dataclass
     class Config(Coqpit):
         boolean_without_default: bool = field()
@@ -123,7 +122,7 @@ class ArgparseWithRequiredField(Coqpit):
     val_a: int
 
 
-def test_argparse_with_required_field():
+def test_argparse_with_required_field() -> None:
     args = ["--coqpit.val_a", "10"]
     try:
         c = ArgparseWithRequiredField()  # pylint: disable=no-value-for-parameter
@@ -137,16 +136,16 @@ def test_argparse_with_required_field():
     assert c.val_a == 10
 
 
-def test_init_argparse_list_and_nested():
+def test_init_argparse_list_and_nested() -> None:
     @dataclass
     class SimplerConfig2(Coqpit):
-        val_a: int = field(default=None, metadata={"help": "this is val_a"})
+        val_a: Optional[int] = field(default=None, metadata={"help": "this is val_a"})
 
     @dataclass
     class SimpleConfig2(Coqpit):
         val_req: str  # required field
         val_a: int = field(default=10, metadata={"help": "this is val_a of SimpleConfig2"})
-        val_b: int = field(default=None, metadata={"help": "this is val_b"})
+        val_b: Optional[int] = field(default=None, metadata={"help": "this is val_b"})
         nested_config: SimplerConfig2 = field(default_factory=lambda: SimplerConfig2())
         mylist_with_default: list[SimplerConfig2] = field(
             default_factory=lambda: [SimplerConfig2(val_a=100), SimplerConfig2(val_a=999)],
@@ -155,9 +154,7 @@ def test_init_argparse_list_and_nested():
 
         # mylist_without_default: List[SimplerConfig2] = field(default=None, metadata={'help': 'list of SimplerConfig2'})  # NOT SUPPORTED YET!
 
-        def check_values(
-            self,
-        ):
+        def check_values(self) -> None:
             """Check config fields"""
             c = asdict(self)
             check_argument("val_a", c, restricted=True, min_val=10, max_val=2056)
