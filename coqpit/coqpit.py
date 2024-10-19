@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import contextlib
-import functools
 import json
 import operator
 import os
@@ -290,41 +289,49 @@ def _deserialize(x: Any, field_type: Any) -> Any:
     raise ValueError(msg)
 
 
-# Recursive setattr (supports dotted attr names)
-def rsetattr(obj, attr, val):
-    def _setitem(obj, attr, val):
-        return operator.setitem(obj, int(attr), val)
-
-    pre, _, post = attr.rpartition(".")
-    setfunc = _setitem if post.isnumeric() else setattr
-
-    return setfunc(rgetattr(obj, pre) if pre else obj, post, val)
+CoqpitType: TypeAlias = MutableMapping[str, "CoqpitNestedValue"]
+CoqpitNestedValue: TypeAlias = Union["CoqpitValue", CoqpitType]
+CoqpitValue: TypeAlias = str | int | float | bool | None
 
 
-# Recursive getattr (supports dotted attr names)
-def rgetattr(obj, attr, *args):
-    def _getitem(obj, attr):
-        return operator.getitem(obj, int(attr), *args)
-
-    def _getattr(obj, attr):
-        getfunc = _getitem if attr.isnumeric() else getattr
-        return getfunc(obj, attr, *args)
-
-    return functools.reduce(_getattr, [obj, *attr.split(".")])
-
-
-# Recursive setitem (supports dotted attr names)
-def rsetitem(obj, attr, val):
-    pre, _, post = attr.rpartition(".")
-    return operator.setitem(rgetitem(obj, pre) if pre else obj, post, val)
+# TODO: It should be possible to get rid of the next 3 `type: ignore`. At
+# nested levels, the key can be `str | int` as well, not just `str`.
+def _rsetattr(obj: CoqpitType, keys: str, val: CoqpitValue) -> None:
+    """Recursive setattr (supports dotted key names)"""
+    pre, _, post = keys.rpartition(".")
+    target = _rgetattr(obj, pre) if pre else obj
+    if post.isnumeric():
+        operator.setitem(target, int(post), val)  # type: ignore[misc]
+    else:
+        setattr(target, post, val)
 
 
-# Recursive getitem (supports dotted attr names)
-def rgetitem(obj, attr, *args):
-    def _getitem(obj, attr):
-        return operator.getitem(obj, int(attr) if attr.isnumeric() else attr, *args)
+def _rgetattr(obj: CoqpitType, keys: str) -> CoqpitType:
+    """Recursive getattr (supports dotted key names)."""
+    v = obj
+    for k in keys.split("."):
+        v = operator.getitem(v, int(k)) if k.isnumeric() else getattr(v, k)  # type: ignore[arg-type]
+    return v
 
-    return functools.reduce(_getitem, [obj, *attr.split(".")])
+
+def _rsetitem(obj: CoqpitType, keys: str, value: CoqpitValue) -> None:
+    """Recursive setitem (supports dotted key names).
+
+    _rsetitem(a, "b.c", 1) => a["b"]["c"] = 1
+    """
+    pre, _, post = keys.rpartition(".")
+    operator.setitem(_rgetitem(obj, pre) if pre else obj, post, value)
+
+
+def _rgetitem(obj: CoqpitType, keys: str) -> CoqpitType:
+    """Recursive getitem (supports dotted key names).
+
+    _rgetitem(a, "b.c") => a["b"]["c"]
+    """
+    v = obj
+    for k in keys.split("."):
+        v = operator.getitem(v, int(k) if k.isnumeric() else k)  # type: ignore[arg-type]
+    return v
 
 
 @dataclass
@@ -798,7 +805,7 @@ class Coqpit(Serializable, MutableMapping):
             if k.startswith(f"{arg_prefix}."):
                 k = k[len(f"{arg_prefix}.") :]
 
-            rsetitem(args_with_lists_processed, k, v)
+            _rsetitem(args_with_lists_processed, k, v)
 
         return cls(**args_with_lists_processed)
 
@@ -828,12 +835,12 @@ class Coqpit(Serializable, MutableMapping):
             if k.startswith(f"{arg_prefix}."):
                 k = k[len(f"{arg_prefix}.") :]
             try:
-                rgetattr(self, k)
+                _rgetattr(self, k)
             except (TypeError, AttributeError) as e:
                 msg = f" [!] '{k}' not exist to override from argparse."
                 raise Exception(msg) from e
 
-            rsetattr(self, k, v)
+            _rsetattr(self, k, v)
 
         self.check_values()
 
