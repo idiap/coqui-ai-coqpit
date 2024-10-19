@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "coqpit"
-version = "0.0.17"
+version = "0.1.0"
 description = "Simple (maybe too simple), light-weight config management through python data-classes."
 readme = "README.md"
 requires-python = ">=3.9"
