@@ -167,7 +167,7 @@ def _serialize(x: Any) -> Any:
     if isinstance(x, Serializable) or issubclass(type(x), Serializable):
         return x.serialize()
     if isinstance(x, type) and issubclass(x, Serializable):
-        return x.serialize(x)
+        return x.serialize(x())
     return x
 
 
