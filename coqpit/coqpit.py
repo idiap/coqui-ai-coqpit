@@ -15,31 +15,37 @@ from pprint import pprint
 from types import GenericAlias, NoneType, UnionType
 from typing import TYPE_CHECKING, Any, Callable, Generic, Literal, TypeVar, Union, overload
 
-T = TypeVar("T")
+from typing_extensions import Self, TypeAlias, TypeGuard, TypeIs
+
+if TYPE_CHECKING:  # pragma: no cover
+    from dataclasses import _MISSING_TYPE
+
+    from _typeshed import SupportsKeysAndGetItem
+
+_T = TypeVar("_T")
 MISSING: Any = "???"
 
 
-class _NoDefault(Generic[T]):
+class _NoDefault(Generic[_T]):
     pass
 
 
-NoDefaultVar = Union[_NoDefault[T], T]
-no_default: NoDefaultVar = _NoDefault()
+NoDefaultVar: TypeAlias = Union[_NoDefault[_T], _T]
+no_default: NoDefaultVar[Any] = _NoDefault()
+
+FieldType: TypeAlias = str | type | UnionType
 
 
-def is_primitive_type(arg_type: Any) -> bool:
+def _is_primitive_type(field_type: FieldType) -> TypeGuard[type]:
     """Check if the input type is one of `int, float, str, bool`.
 
     Args:
-        arg_type (typing.Any): input type to check.
+        field_type: input type to check.
 
     Returns:
         bool: True if input type is one of `int, float, str, bool`.
     """
-    try:
-        return isinstance(arg_type(), (int, float, str, bool))
-    except (AttributeError, TypeError):
-        return False
+    return field_type is int or field_type is float or field_type is str or field_type is bool
 
 
 def is_list(arg_type: Any) -> bool:
@@ -112,7 +118,7 @@ def _coqpit_json_default(obj: Any) -> Any:
     raise TypeError(msg)
 
 
-def _default_value(x: Field):
+def _default_value(x: Field[_T]) -> _T | Literal[_MISSING_TYPE.MISSING]:
     """Return the default value of the input Field.
 
     Args:
@@ -121,9 +127,9 @@ def _default_value(x: Field):
     Returns:
         object: default value of the input Field.
     """
-    if x.default not in (MISSING, _MISSING):
+    if x.default != MISSING and x.default is not _MISSING:
         return x.default
-    if x.default_factory not in (MISSING, _MISSING):
+    if x.default_factory != MISSING and x.default_factory is not _MISSING:
         return x.default_factory()
     return x.default
 
@@ -181,7 +187,7 @@ def _deserialize_dict(x: dict[Any, Any]) -> dict[Any, Any]:
     return out_dict
 
 
-def _deserialize_list(x: list, field_type: type) -> list:
+def _deserialize_list(x: list[_T], field_type: FieldType) -> list[_T]:
     """Deserialize values for List typed fields.
 
     Args:
@@ -275,7 +281,7 @@ def _deserialize(x: Any, field_type: Any) -> Any:
         return _deserialize_union(x, field_type)
     if issubclass(field_type, Serializable):
         return field_type.deserialize_immutable(x)
-    if is_primitive_type(field_type):
+    if _is_primitive_type(field_type):
         return _deserialize_primitive_types(x, field_type)
     msg = f" [!] '{type(x)}' value type of '{x}' does not match '{field_type}' field type."
     raise ValueError(msg)
@@ -479,7 +485,7 @@ def _init_argparse(
         has_default = True
         default = field_default_factory()
 
-    if not has_default and not is_primitive_type(field_type) and not is_list(field_type):
+    if not has_default and not _is_primitive_type(field_type) and not is_list(field_type):
         # aggregate types (fields with a Coqpit subclass as type) are not supported without None
         return parser
     arg_prefix = field_name if arg_prefix == "" else f"{arg_prefix}.{field_name}"
@@ -508,7 +514,7 @@ def _init_argparse(
             return parser
 
         if not has_default or field_default_factory is list:
-            if not is_primitive_type(list_field_type) and not relaxed_parser:
+            if not _is_primitive_type(list_field_type) and not relaxed_parser:
                 msg = " [!] Empty list with non primitive inner type is currently not supported."
                 raise NotImplementedError(msg)
 
@@ -561,7 +567,7 @@ def _init_argparse(
             help=f"Coqpit Field: {help_prefix}",
             metavar="true/false",
         )
-    elif is_primitive_type(field_type):
+    elif _is_primitive_type(field_type):
         parser.add_argument(
             f"--{arg_prefix}",
             default=field_default,
@@ -774,7 +780,7 @@ class Coqpit(Serializable, MutableMapping):
                 has_default = True
                 default = field_default_factory()
 
-            if has_default and (not is_primitive_type(field.type) or is_list(field.type)):
+            if has_default and (not _is_primitive_type(field.type) or is_list(field.type)):
                 args_with_lists_processed[field.name] = default
 
         args_dict = vars(args)
