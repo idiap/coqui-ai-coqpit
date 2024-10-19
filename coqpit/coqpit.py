@@ -714,8 +714,8 @@ class Coqpit(Serializable, MutableMapping):
         # return asdict(self)
         return self.serialize()
 
-    def from_dict(self, data: dict) -> None:
-        self = self.deserialize(data)  # pylint: disable=self-cls-assignment
+    def from_dict(self, data: dict[str, Any]) -> None:
+        self.deserialize(data)
 
     @classmethod
     def new_from_dict(cls, data: dict[str, Any]) -> Self:
@@ -748,8 +748,7 @@ class Coqpit(Serializable, MutableMapping):
         with open(file_name, encoding="utf8") as f:
             input_str = f.read()
             dump_dict = json.loads(input_str)
-        # TODO: this looks stupid 💆
-        self = self.deserialize(dump_dict)  # pylint: disable=self-cls-assignment
+        self.deserialize(dump_dict)
         self.check_values()
 
     @classmethod
