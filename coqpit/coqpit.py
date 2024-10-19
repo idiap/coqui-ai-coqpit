@@ -384,7 +384,7 @@ class Serializable:
             o[field.name] = value
         return o
 
-    def deserialize(self, data: dict) -> "Serializable":
+    def deserialize(self, data: dict[str, Any]) -> Self:
         """Parse input dictionary and deserialize its fields to a dataclass.
 
         Returns:
@@ -416,7 +416,7 @@ class Serializable:
         return self
 
     @classmethod
-    def deserialize_immutable(cls, data: dict) -> "Serializable":
+    def deserialize_immutable(cls, data: dict[str, Any]) -> Self:
         """Parse input dictionary and deserialize its fields to a dataclass.
 
         Returns:
@@ -679,7 +679,7 @@ class Coqpit(Serializable, MutableMapping):
     def has(self, arg: str) -> bool:
         return arg in vars(self)
 
-    def copy(self):
+    def copy(self) -> Self:
         return replace(self)
 
     def update(self, new: dict, allow_new: bool = False) -> None:
@@ -708,7 +708,7 @@ class Coqpit(Serializable, MutableMapping):
         self = self.deserialize(data)  # pylint: disable=self-cls-assignment
 
     @classmethod
-    def new_from_dict(cls: Serializable, data: dict) -> "Coqpit":
+    def new_from_dict(cls, data: dict[str, Any]) -> Self:
         return cls.deserialize_immutable(data)
 
     def to_json(self) -> str:
@@ -747,7 +747,7 @@ class Coqpit(Serializable, MutableMapping):
         cls,
         args: argparse.Namespace | list[str] | None = None,
         arg_prefix: str = "coqpit",
-    ) -> "Coqpit":
+    ) -> Self:
         """Create a new Coqpit instance from argparse input.
 
         Args:
