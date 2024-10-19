@@ -111,13 +111,6 @@ def safe_issubclass(cls, classinfo) -> bool:
         return r
 
 
-def _coqpit_json_default(obj: Any) -> Any:
-    if isinstance(obj, Path):
-        return str(obj)
-    msg = f"Can't encode object of type {type(obj).__name__}"
-    raise TypeError(msg)
-
-
 def _default_value(x: Field[_T]) -> _T | Literal[_MISSING_TYPE.MISSING]:
     """Return the default value of the input Field.
 
@@ -713,7 +706,7 @@ class Coqpit(Serializable, MutableMapping):
 
     def to_json(self) -> str:
         """Returns a JSON string representation."""
-        return json.dumps(asdict(self), indent=4, default=_coqpit_json_default)
+        return json.dumps(self.to_dict(), indent=4)
 
     def save_json(self, file_name: str | os.PathLike[Any]) -> None:
         """Save Coqpit to a json file.
@@ -722,7 +715,7 @@ class Coqpit(Serializable, MutableMapping):
             file_name (str): path to the output json file.
         """
         with open(file_name, "w", encoding="utf8") as f:
-            json.dump(asdict(self), f, indent=4)
+            json.dump(self.to_dict(), f, indent=4)
 
     def load_json(self, file_name: str | os.PathLike[Any]) -> None:
         """Load a json file and update matching config fields with type checking.
