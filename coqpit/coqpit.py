@@ -235,7 +235,9 @@ def _deserialize_union(x: Any, field_type: UnionType) -> Any:
     return x
 
 
-def _deserialize_primitive_types(x: Union[int, float, str, bool], field_type: type) -> Union[int, float, str, bool]:
+def _deserialize_primitive_types(
+    x: int | float | str | bool | None, field_type: FieldType
+) -> int | float | str | bool | None:
     """Deserialize python primitive types (float, int, str, bool).
 
     It handles `inf` values exclusively and keeps them float against int fields since int does not support inf values.
@@ -247,18 +249,22 @@ def _deserialize_primitive_types(x: Union[int, float, str, bool], field_type: ty
     Returns:
         Union[int, float, str, bool]: deserialized value.
     """
+    if x is None:
+        return None
     if isinstance(x, (str, bool)):
         return x
     if isinstance(x, (int, float)):
+        base_type = _drop_none_type(field_type)
+        if base_type is not float and base_type is not int and base_type is not str and base_type is not bool:
+            raise TypeError
+        base_type = typing.cast(type[int | float | str | bool], base_type)
         if x == float("inf") or x == float("-inf"):
             # if value type is inf return regardless.
             return x
-        return field_type(x)
-    # TODO: Raise an error when x does not match the types.
-    return None
+        return base_type(x)
 
 
-def _deserialize(x: Any, field_type: Any) -> Any:
+def _deserialize(x: Any, field_type: FieldType) -> Any:
     """Pick the right deserialization for the given object and the corresponding field type.
 
     Args:
@@ -468,10 +474,9 @@ class Serializable:
 
 def _get_help(field: Field[Any]) -> str:
     try:
-        field_help = field.metadata["help"]
+        return str(field.metadata["help"])
     except KeyError:
-        field_help = ""
-    return field_help
+        return ""
 
 
 def _init_argparse(
@@ -485,13 +490,15 @@ def _init_argparse(
     help_prefix="",
     *,
     relaxed_parser: bool = False,
-):
-    has_default = False
+) -> argparse.ArgumentParser:
+    """Add a new argument to the argparse parser, matching the given field."""
+    assert not isinstance(field_type, str)
     default = None
+    has_default = False
     if field_default:
         has_default = True
         default = field_default
-    elif field_default_factory not in (None, _MISSING):
+    elif field_default_factory is not None and field_default_factory is not _MISSING:
         has_default = True
         default = field_default_factory()
 
@@ -567,7 +574,7 @@ def _init_argparse(
             help_prefix=help_prefix,
             relaxed_parser=relaxed_parser,
         )
-    elif isinstance(field_type(), bool):
+    elif field_type is bool:
 
         def parse_bool(x: str) -> bool:
             if x not in ("true", "false"):
@@ -603,7 +610,7 @@ def _init_argparse(
 
 
 @dataclass
-class Coqpit(Serializable, MutableMapping):
+class Coqpit(Serializable, CoqpitType):
     """Coqpit base class to be inherited by any Coqpit dataclasses.
 
     It overrides Python `dict` interface and provides `dict` compatible API.
@@ -782,7 +789,7 @@ class Coqpit(Serializable, MutableMapping):
         # Handle list and object attributes with defaults, which can be modified
         # directly (eg. --coqpit.list.0.val_a 1), by constructing real objects
         # from defaults and passing those to `cls.__init__`
-        args_with_lists_processed = {}
+        args_with_lists_processed: CoqpitType = {}
         class_fields = fields(cls)
         for field in class_fields:
             has_default = False
@@ -971,7 +978,7 @@ def check_argument(
     if is_path:
         assert Path(c[name]).exists(), f' [!] path for {name} ("{c[name]}") does not exist.'
     # skip the rest if the alternative field is defined.
-    if alternative in c and c[alternative] is not None:
+    if alternative is not None and alternative in c and c[alternative] is not None:
         return
     # check value constraints
     if name in c:
