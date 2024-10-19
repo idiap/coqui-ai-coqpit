@@ -370,9 +370,7 @@ class Serializable:
     def validate(self) -> None:
         """Validate if object can serialize / deserialize correctly."""
         self._validate_contracts()
-        if self != self.__class__.deserialize(  # pylint: disable=no-value-for-parameter
-            json.loads(json.dumps(self.serialize())),
-        ):
+        if self != self.__class__().deserialize(json.loads(json.dumps(self.serialize()))):
             msg = "could not be deserialized with same value"
             raise ValueError(msg)
 
@@ -423,7 +421,7 @@ class Serializable:
                 init_kwargs[field.name] = value
                 continue
             if value == MISSING:
-                msg = f"deserialized with unknown value for {field.name} in {self.__name__}"
+                msg = f"deserialized with unknown value for {field.name} in {self.__class__.__name__}"
                 raise ValueError(msg)
             value = _deserialize(value, field.type)
             init_kwargs[field.name] = value
