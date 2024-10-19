@@ -112,8 +112,8 @@ def test_boolean_parse() -> None:
 
     try:
         config.parse_args(args)
-        assert False, "should not reach this"  # noqa: B011
-    except:  # noqa: E722
+        raise AssertionError("should not reach this")  # pragma: no cover
+    except SystemExit:
         pass
 
 
@@ -125,9 +125,8 @@ class ArgparseWithRequiredField(Coqpit):
 def test_argparse_with_required_field() -> None:
     args = ["--coqpit.val_a", "10"]
     try:
-        c = ArgparseWithRequiredField()  # pylint: disable=no-value-for-parameter
-        c.parse_args(args)
-        assert False  # noqa: B011
+        c = ArgparseWithRequiredField()  # type: ignore[call-arg]
+        raise AssertionError("should not reach this")  # pragma: no cover
     except TypeError:
         # __init__ should fail due to missing val_a
         pass
