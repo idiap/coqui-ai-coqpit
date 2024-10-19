@@ -1,26 +1,30 @@
-import os
 from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Optional
 
 from coqpit import Coqpit
 
 
 @dataclass
 class Person(Coqpit):
-    name: str = None
-    age: int = None
+    name: Optional[str] = None
+    age: Optional[int] = None
 
 
 @dataclass
 class Group(Coqpit):
-    name: str = None
-    size: int = None
-    people: list[Person] = None
+    name: Optional[str] = None
+    size: Optional[int] = None
+    path: Optional[Path] = None
+    people: list[Person] = field(default_factory=list)
+    some_dict: dict[str, Optional[int]] = field(default_factory=dict)
 
 
 @dataclass
 class Reference(Coqpit):
-    name: str = "Coqpit"
-    size: int = 3
+    name: Optional[str] = "Coqpit"
+    size: Optional[int] = 3
+    path: Path = Path("a/b")
     people: list[Person] = field(
         default_factory=lambda: [
             Person(name="Eren", age=11),
@@ -28,10 +32,11 @@ class Reference(Coqpit):
             Person(name="Ceren", age=15),
         ]
     )
+    some_dict: dict[str, Optional[int]] = field(default_factory=lambda: {"a": 1, "b": 2, "c": None})
 
 
-def test_serizalization():
-    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_serialization.json")
+def test_serialization() -> None:
+    file_path = Path(__file__).resolve().parent / "test_serialization.json"
 
     ref_config = Reference()
     ref_config.save_json(file_path)
@@ -50,3 +55,7 @@ def test_serizalization():
     assert ref_config.people[0].age == new_config.people[0].age
     assert ref_config.people[1].age == new_config.people[1].age
     assert ref_config.people[2].age == new_config.people[2].age
+    assert ref_config.path == new_config.path
+    assert ref_config.some_dict["a"] == new_config.some_dict["a"]
+    assert ref_config.some_dict["b"] == new_config.some_dict["b"]
+    assert ref_config.some_dict["c"] == new_config.some_dict["c"]
