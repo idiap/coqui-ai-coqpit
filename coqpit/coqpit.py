@@ -706,19 +706,29 @@ class Coqpit(Serializable, CoqpitType):
     def copy(self) -> Self:
         return replace(self)
 
-    def update(self, new: dict, allow_new: bool = False) -> None:
+    @overload
+    def update(self, other: SupportsKeysAndGetItem[str, CoqpitNestedValue], /, **kwargs: CoqpitNestedValue) -> None: ...
+    @overload
+    def update(self, other: Iterable[tuple[str, CoqpitNestedValue]], /, **kwargs: CoqpitNestedValue) -> None: ...
+    @overload
+    def update(self, /, **kwargs: CoqpitNestedValue) -> None: ...
+    def update(self, other: Any = (), /, **kwargs: CoqpitNestedValue) -> None:
         """Update Coqpit fields by the input ```dict```.
 
         Args:
-            new (dict): dictionary with new values.
-            allow_new (bool, optional): allow new fields to add. Defaults to False.
+            other (dict): dictionary with new values.
         """
-        for key, value in new.items():
-            if allow_new or hasattr(self, key):
+        if isinstance(other, dict):
+            for key in other:
+                setattr(self, key, other[key])
+        elif hasattr(other, "keys"):
+            for key in other.keys():
+                setattr(self, key, other[key])
+        else:
+            for key, value in other:
                 setattr(self, key, value)
-            else:
-                msg = f" [!] No key - {key}"
-                raise KeyError(msg)
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
     def pprint(self) -> None:
         """Print Coqpit fields in a format."""
