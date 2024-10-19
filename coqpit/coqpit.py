@@ -140,7 +140,24 @@ def _is_optional_field(field) -> bool:
     return type(None) in field.type.__args__
 
 
-def _serialize(x):
+def _drop_none_type(field_type: FieldType) -> FieldType:
+    """Drop None from Union-like types.
+
+    >>> _drop_none_type(str | int | None)
+    str | int
+    """
+    if not _is_union(field_type):
+        return field_type
+    origin = typing.get_origin(field_type)
+    args = list(typing.get_args(field_type))
+    if NoneType in args:
+        args.remove(NoneType)
+    if len(args) == 1:
+        return typing.cast(type, args[0])
+    return typing.cast(UnionType, GenericAlias(origin, args))
+
+
+def _serialize(x: Any) -> Any:
     """Pick the right serialization for the datatype of the given input.
 
     Args:
