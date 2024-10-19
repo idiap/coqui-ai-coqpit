@@ -285,8 +285,9 @@ def _deserialize(x: Any, field_type: FieldType) -> Any:
         object: deserialized object
 
     """
-    # pylint: disable=too-many-return-statements
-    assert not isinstance(field_type, str)
+    if isinstance(field_type, str):
+        msg = "Strings as type hints are not supported."
+        raise NotImplementedError(msg)
     if _is_dict(_drop_none_type(field_type)):
         return _deserialize_dict(x)
     if _is_list(_drop_none_type(field_type)):
@@ -500,7 +501,9 @@ def _add_argument(
     relaxed_parser: bool = False,
 ) -> argparse.ArgumentParser:
     """Add a new argument to the argparse parser, matching the given field."""
-    assert not isinstance(field_type, str)
+    if isinstance(field_type, str):
+        msg = "Strings as type hints are not supported."
+        raise NotImplementedError(msg)
     default = None
     has_default = False
     if field_default:
@@ -558,7 +561,9 @@ def _add_argument(
         else:
             # If a default value is defined, just enable editing the values from argparse
             # TODO: allow inserting a new value/obj to the end of the list.
-            assert isinstance(default, list)
+            if not isinstance(default, list):
+                msg = f"Default value must be a list, got {default}"
+                raise TypeError(msg)
             for idx, fv in enumerate(default):
                 parser = _add_argument(
                     parser,
@@ -577,7 +582,9 @@ def _add_argument(
             msg = " [!] Parsing `Union` field from argparse is not yet implemented. Please create an issue."
             raise NotImplementedError(msg)
     elif not _is_union(field_type) and issubclass(field_type, Coqpit):
-        assert isinstance(default, Coqpit)
+        if not isinstance(default, Coqpit):
+            msg = f"Default value must be a Coqpit instance, got {default}"
+            raise TypeError(msg)
         return default.init_argparse(
             instance=default,
             parser=parser,
@@ -602,7 +609,8 @@ def _add_argument(
         )
     elif _is_primitive_type(_drop_none_type(field_type)):
         base_type = _drop_none_type(field_type)
-        assert not _is_union(base_type)
+        if _is_union(base_type):
+            raise TypeError
         parser.add_argument(
             f"--{arg_prefix}",
             default=field_default,
@@ -870,7 +878,7 @@ class Coqpit(Serializable, CoqpitType):
                 _rgetattr(self, k)
             except (TypeError, AttributeError) as e:
                 msg = f" [!] '{k}' not exist to override from argparse."
-                raise Exception(msg) from e
+                raise TypeError(msg) from e
 
             _rsetattr(self, k, v)
 
@@ -997,29 +1005,38 @@ def check_argument(
         >>> check_argument('fft_size', c, restricted=True, min_val=128, max_val=4058)
     """
     # check if None allowed
-    if allow_none and c[name] is None:
-        return
-    if not allow_none:
-        assert c[name] is not None, f" [!] None value is not allowed for {name}."
+    if c[name] is None:
+        if allow_none:
+            return
+        msg = f" [!] None value is not allowed for {name}."
+        raise TypeError(msg)
     # check if restricted and it it is check if it exists
-    if isinstance(restricted, bool) and restricted:
-        assert name in c, f" [!] {name} not defined in config.json"
+    if isinstance(restricted, bool) and restricted and name not in c:
+        msg = f" [!] {name} not defined in config.json"
+        raise KeyError(msg)
     # check prerequest fields are defined
     if isinstance(prerequest, list):
-        assert any(f not in c for f in prerequest), f" [!] prequested fields {prerequest} for {name} are not defined."
-    else:
-        assert prerequest is None or prerequest in c, f" [!] prequested fields {prerequest} for {name} are not defined."
+        if any(f not in c for f in prerequest):
+            msg = f" [!] prequested fields {prerequest} for {name} are not defined."
+            raise KeyError(msg)
+    elif prerequest is not None and prerequest not in c:
+        msg = f" [!] prequested field {prerequest} for {name} is not defined."
+        raise KeyError(msg)
     # check if the path exists
-    if is_path:
-        assert Path(c[name]).exists(), f' [!] path for {name} ("{c[name]}") does not exist.'
+    if is_path and not Path(c[name]).exists():
+        msg = f' [!] path for {name} ("{c[name]}") does not exist.'
+        raise FileNotFoundError(msg)
     # skip the rest if the alternative field is defined.
     if alternative is not None and alternative in c and c[alternative] is not None:
         return
     # check value constraints
     if name in c:
-        if max_val is not None:
-            assert c[name] <= max_val, f" [!] {name} is larger than max value {max_val}"
-        if min_val is not None:
-            assert c[name] >= min_val, f" [!] {name} is smaller than min value {min_val}"
-        if enum_list is not None:
-            assert c[name].lower() in enum_list, f" [!] {name} is not a valid value"
+        if max_val is not None and c[name] > max_val:
+            msg = f" [!] {name} is larger than max value {max_val}"
+            raise ValueError
+        if min_val is not None and c[name] < min_val:
+            msg = f" [!] {name} is smaller than min value {min_val}"
+            raise ValueError
+        if enum_list is not None and c[name].lower() not in enum_list:
+            msg = f" [!] {name} is not a valid value"
+            raise ValueError
