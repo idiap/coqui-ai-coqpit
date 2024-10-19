@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
+import pytest  # type: ignore[import-not-found]
+
 from coqpit import Coqpit
 
 
@@ -19,7 +21,7 @@ class Reference(Coqpit):
             Person(name="Eren", age=11),
             Person(name="Geren", age=12),
             Person(name="Ceren", age=15),
-        ]
+        ],
     )
     people_ids: list[int] = field(default_factory=lambda: [1, 2, 3])
 
@@ -41,7 +43,5 @@ def test_new_from_dict() -> None:
     assert ref_config.people[0].name == new_config.people[0].name
     assert ref_config.people[0].age == new_config.people[0].age
 
-    try:
+    with pytest.raises(ValueError, match="Missing required field"):
         WithRequired.new_from_dict({})
-    except ValueError as e:
-        assert "Missing required field" in e.args[0]

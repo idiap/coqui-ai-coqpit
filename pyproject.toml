@@ -58,7 +58,22 @@ exclude = [
 [tool.ruff]
 target-version = "py39"
 line-length = 120
-lint.extend-select = ["I", "UP", "B", "W", "A", "PLC", "PLE"]
+lint.select = ["ALL"]
+lint.ignore = [
+    "ANN401",
+    "D104",
+    "FIX",
+    "TD",
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "D",
+    "FA100",
+    "PLR2004",
+    "S101",
+    "T201",
+]

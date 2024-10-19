@@ -62,9 +62,9 @@ def test_parse_argparse() -> None:
 
 
 def test_parse_edited_argparse() -> None:
-    """calling `parse_known_argparse` after some modifications in the config values.
-    `parse_known_argparse` should keep the modified values if not defined in argv"""
-
+    """Calling `parse_known_argparse` after some modifications in the config values.
+    `parse_known_argparse` should keep the modified values if not defined in argv
+    """
     unknown_args = ["--coqpit.arg_does_not_exist", "111"]
     args = []
     args.extend(["--coqpit.mylist_with_default.1.val_a", "111"])

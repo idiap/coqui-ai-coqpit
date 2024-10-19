@@ -1,10 +1,11 @@
+"""Simple, light-weight config handling through Python data classes."""
+
 from __future__ import annotations
 
 import argparse
 import contextlib
 import json
 import operator
-import os
 import sys
 import typing
 from collections.abc import ItemsView, Iterable, Iterator, MutableMapping
@@ -24,6 +25,7 @@ else:
     UnionType: TypeAlias = Union
 
 if TYPE_CHECKING:  # pragma: no cover
+    import os
     from dataclasses import _MISSING_TYPE
 
     from _typeshed import SupportsKeysAndGetItem
@@ -108,7 +110,7 @@ def _is_union_and_not_simple_optional(field_type: FieldType) -> TypeGuard[UnionT
     """
     args = typing.get_args(field_type)
     is_python_union = _is_union(field_type)
-    if is_python_union and len(args) == 2 and type(None) in args:
+    if is_python_union and len(args) == 2 and type(None) in args:  # noqa: PLR2004
         # This is an Optional type like `int | None`
         return False
     return is_python_union
@@ -215,7 +217,7 @@ def _deserialize_list(x: list[_T], field_type: FieldType) -> list[_T]:
     field_args = typing.get_args(field_type)
     if len(field_args) == 0:
         return x
-    elif len(field_args) > 1:
+    if len(field_args) > 1:
         msg = "Coqpit does not support multi-type hinted 'List'"
         raise ValueError(msg)
     field_arg = field_args[0]
@@ -246,7 +248,8 @@ def _deserialize_union(x: Any, field_type: UnionType) -> Any:
 
 
 def _deserialize_primitive_types(
-    x: int | float | str | bool | None, field_type: FieldType
+    x: int | float | str | bool | None,  # noqa: PYI041
+    field_type: FieldType,
 ) -> int | float | str | bool | None:
     """Deserialize python primitive types (float, int, str, bool).
 
@@ -259,8 +262,6 @@ def _deserialize_primitive_types(
     Returns:
         Union[int, float, str, bool]: deserialized value.
     """
-    if x is None:
-        return None
     if isinstance(x, (str, bool)):
         return x
     if isinstance(x, (int, float)):
@@ -272,6 +273,14 @@ def _deserialize_primitive_types(
             # if value type is inf return regardless.
             return x
         return base_type(x)
+    return None
+
+
+def _deserialize_path(x: Any, field_type: FieldType) -> Path | None:
+    """Deserialize to a Path."""
+    if x is None and _is_optional_field(field_type):
+        return None
+    return Path(x)
 
 
 def _deserialize(x: Any, field_type: FieldType) -> Any:
@@ -297,9 +306,7 @@ def _deserialize(x: Any, field_type: FieldType) -> Any:
     if not _is_union(field_type) and isinstance(field_type, type) and issubclass(field_type, Serializable):
         return field_type.deserialize_immutable(x)
     if _drop_none_type(field_type) is Path:
-        if x is None and _is_optional_field(field_type):
-            return None
-        return Path(x)
+        return _deserialize_path(x, field_type)
     if _is_primitive_type(_drop_none_type(field_type)):
         return _deserialize_primitive_types(x, field_type)
     msg = f" [!] '{type(x)}' value type of '{x}' does not match '{field_type}' field type."
@@ -314,7 +321,7 @@ CoqpitValue: TypeAlias = Union[str, int, float, bool, None]
 # TODO: It should be possible to get rid of the next 3 `type: ignore`. At
 # nested levels, the key can be `str | int` as well, not just `str`.
 def _rsetattr(obj: CoqpitType, keys: str, val: CoqpitValue) -> None:
-    """Recursive setattr (supports dotted key names)"""
+    """Recursive setattr (supports dotted key names)."""
     pre, _, post = keys.rpartition(".")
     target = _rgetattr(obj, pre) if pre else obj
     if post.isnumeric():
@@ -356,6 +363,7 @@ class Serializable:
     """Gives serialization ability to any inheriting dataclass."""
 
     def __post_init__(self) -> None:
+        """Validate contracts and check required arguments are specified."""
         self._validate_contracts()
         for key, value in self.__dict__.items():
             if value is no_default:
@@ -363,6 +371,7 @@ class Serializable:
                 raise TypeError(msg)
 
     def _validate_contracts(self) -> None:
+        """Validate contracts specified in the dataclass."""
         dataclass_fields = fields(self)
 
         for field in dataclass_fields:
@@ -488,7 +497,7 @@ def _get_help(field: Field[Any]) -> str:
         return ""
 
 
-def _add_argument(
+def _add_argument(  # noqa: C901, PLR0913, PLR0912, PLR0915
     parser: argparse.ArgumentParser,
     field_name: str,
     field_type: FieldType,
@@ -523,7 +532,7 @@ def _add_argument(
         return parser
     arg_prefix = field_name if arg_prefix == "" else f"{arg_prefix}.{field_name}"
     help_prefix = field_help if help_prefix == "" else f"{help_prefix} - {field_help}"
-    if _is_dict(field_type):  # pylint: disable=no-else-raise
+    if _is_dict(field_type):
         # NOTE: accept any string in json format as input to dict field.
         parser.add_argument(
             f"--{arg_prefix}",
@@ -537,7 +546,7 @@ def _add_argument(
         if len(field_args) > 1 and not relaxed_parser:
             msg = "Coqpit does not support multi-type hinted 'List'"
             raise ValueError(msg)
-        elif len(field_args) == 0:
+        if len(field_args) == 0:
             msg = "Coqpit does not support un-hinted 'List'"
             raise ValueError(msg)
         list_field_type = field_args[0]
@@ -633,7 +642,9 @@ class Coqpit(Serializable, CoqpitType):
     """Coqpit base class to be inherited by any Coqpit dataclasses.
 
     It overrides Python `dict` interface and provides `dict` compatible API.
-    It also enables serializing/deserializing a dataclass to/from a json file, plus some semi-dynamic type and value check.
+    It also enables serializing/deserializing a dataclass to/from a json file,
+    plus some semi-dynamic type and value check.
+
     Note that it does not support all datatypes and likely to fail in some cases.
     """
 
@@ -648,6 +659,7 @@ class Coqpit(Serializable, CoqpitType):
         return "_initialized" in vars(self) and self._initialized
 
     def __post_init__(self) -> None:
+        """Check values if a check_values() method is defined."""
         self._initialized = True
         with contextlib.suppress(AttributeError):
             self.check_values()
@@ -655,12 +667,15 @@ class Coqpit(Serializable, CoqpitType):
     ## `dict` API functions
 
     def __iter__(self) -> Iterator[str]:
+        """Return iterator over the Coqpit."""
         return iter(asdict(self))
 
     def __len__(self) -> int:
+        """Return the number of fields in the Coqpit."""
         return len(fields(self))
 
     def __setitem__(self, arg: str, value: Any) -> None:
+        """Set the value for the given attribute."""
         setattr(self, arg, value)
 
     def __getitem__(self, arg: str) -> Any:
@@ -668,14 +683,15 @@ class Coqpit(Serializable, CoqpitType):
         return self.__dict__[arg]
 
     def __delitem__(self, arg: str) -> None:
+        """Remove an attribute."""
         delattr(self, arg)
 
-    def _keytransform(self, key: str) -> str:  # pylint: disable=no-self-use
+    def _keytransform(self, key: str) -> str:
         return key
 
     ## end `dict` API functions
 
-    def __getattribute__(self, arg: str) -> Any:  # pylint: disable=no-self-use
+    def __getattribute__(self, arg: str) -> Any:
         """Check if the mandatory field is defined when accessing it."""
         value = super().__getattribute__(arg)
         if isinstance(value, str) and value == "???":
@@ -684,14 +700,17 @@ class Coqpit(Serializable, CoqpitType):
         return value
 
     def __contains__(self, arg: object) -> bool:
+        """Check whether the Coqpit contains the given attribute."""
         return arg in self.to_dict()
 
     def get(self, key: str, default: Any = None) -> Any:
+        """Return value of the given attribute if present, otherwise the default."""
         if self.has(key):
             return asdict(self)[key]
         return default
 
     def items(self) -> ItemsView[str, Any]:
+        """Return (key, value) items of the Coqpit."""
         return asdict(self).items()
 
     def merge(self, coqpits: Coqpit | list[Coqpit]) -> None:
@@ -717,12 +736,17 @@ class Coqpit(Serializable, CoqpitType):
             _merge(coqpits)
 
     def check_values(self) -> None:
-        pass
+        """Perform data validation after initialization.
+
+        Can be implemented in subclasses.
+        """
 
     def has(self, arg: str) -> bool:
+        """Check whether the Coqpit has the given attribute."""
         return arg in vars(self)
 
     def copy(self) -> Self:
+        """Return a copy of the Coqpit."""
         return replace(self)
 
     @overload
@@ -735,13 +759,14 @@ class Coqpit(Serializable, CoqpitType):
         """Update Coqpit fields by the input ```dict```.
 
         Args:
-            other (dict): dictionary with new values.
+            other: dictionary or iterable with new values.
+            **kwargs: alternative way to pass new keys and values.
         """
         if isinstance(other, dict):
             for key in other:
                 setattr(self, key, other[key])
         elif hasattr(other, "keys"):
-            for key in other.keys():
+            for key in other.keys():  # noqa: SIM118
                 setattr(self, key, other[key])
         else:
             for key, value in other:
@@ -751,21 +776,23 @@ class Coqpit(Serializable, CoqpitType):
 
     def pprint(self) -> None:
         """Print Coqpit fields in a format."""
-        pprint(asdict(self))
+        pprint(asdict(self))  # noqa: T203
 
     def to_dict(self) -> dict[str, Any]:
-        # return asdict(self)
+        """Convert the Coqpit to a dictionary, serializing any values."""
         return self.serialize()
 
     def from_dict(self, data: dict[str, Any]) -> None:
+        """Update Coqpit from the dictionary."""
         self.deserialize(data)
 
     @classmethod
     def new_from_dict(cls, data: dict[str, Any]) -> Self:
+        """Create a new Coqpit from a dictionary."""
         return cls.deserialize_immutable(data)
 
     def to_json(self) -> str:
-        """Returns a JSON string representation."""
+        """Return a JSON string representation."""
         return json.dumps(self.to_dict(), indent=4)
 
     def save_json(self, file_name: str | os.PathLike[Any]) -> None:
@@ -774,7 +801,7 @@ class Coqpit(Serializable, CoqpitType):
         Args:
             file_name (str): path to the output json file.
         """
-        with open(file_name, "w", encoding="utf8") as f:
+        with Path(file_name).open("w", encoding="utf8") as f:
             json.dump(self.to_dict(), f, indent=4)
 
     def load_json(self, file_name: str | os.PathLike[Any]) -> None:
@@ -788,7 +815,7 @@ class Coqpit(Serializable, CoqpitType):
         Returns:
             Coqpit: new Coqpit with updated config fields.
         """
-        with open(file_name, encoding="utf8") as f:
+        with Path(file_name).open(encoding="utf8") as f:
             input_str = f.read()
             dump_dict = json.loads(input_str)
         self.deserialize(dump_dict)
@@ -803,8 +830,11 @@ class Coqpit(Serializable, CoqpitType):
         """Create a new Coqpit instance from argparse input.
 
         Args:
-            args (namespace or list of str, optional): parsed argparse.Namespace or list of command line parameters. If unspecified will use a newly created parser with ```init_argparse()```.
-            arg_prefix: prefix to add to CLI parameters. Gets forwarded to ```init_argparse``` when ```args``` is not passed.
+            args (namespace or list of str, optional): parsed argparse.Namespace
+              or list of command line parameters. If unspecified will use a
+              newly created parser with ```init_argparse()```.
+            arg_prefix: prefix to add to CLI parameters. Gets forwarded to
+              ```init_argparse``` when ```args``` is not passed.
         """
         if not args:
             # If args was not specified, parse from sys.argv
@@ -838,11 +868,9 @@ class Coqpit(Serializable, CoqpitType):
                 args_with_lists_processed[field.name] = default
 
         args_dict = vars(args)
-        for k, v in args_dict.items():
+        for key, v in args_dict.items():
             # Remove argparse prefix (eg. "--coqpit." if present)
-            if k.startswith(f"{arg_prefix}."):
-                k = k[len(f"{arg_prefix}.") :]
-
+            k = key.removeprefix(f"{arg_prefix}.")
             _rsetitem(args_with_lists_processed, k, v)
 
         return cls(**args_with_lists_processed)
@@ -855,8 +883,11 @@ class Coqpit(Serializable, CoqpitType):
         """Update config values from argparse arguments with some meta-programming ✨.
 
         Args:
-            args (namespace or list of str, optional): parsed argparse.Namespace or list of command line parameters. If unspecified will use a newly created parser with ```init_argparse()```.
-            arg_prefix: prefix to add to CLI parameters. Gets forwarded to ```init_argparse``` when ```args``` is not passed.
+            args (namespace or list of str, optional): parsed argparse.Namespace
+              or list of command line parameters. If unspecified will use a
+              newly created parser with ```init_argparse()```.
+            arg_prefix: prefix to add to CLI parameters. Gets forwarded to
+              ```init_argparse``` when ```args``` is not passed.
         """
         if not args:
             # If args was not specified, parse from sys.argv
@@ -871,9 +902,8 @@ class Coqpit(Serializable, CoqpitType):
 
         args_dict = vars(args)
 
-        for k, v in args_dict.items():
-            if k.startswith(f"{arg_prefix}."):
-                k = k[len(f"{arg_prefix}.") :]
+        for key, v in args_dict.items():
+            k = key.removeprefix(f"{arg_prefix}.")
             try:
                 _rgetattr(self, k)
             except (TypeError, AttributeError) as e:
@@ -888,6 +918,7 @@ class Coqpit(Serializable, CoqpitType):
         self,
         args: argparse.Namespace | list[str] | None = None,
         arg_prefix: str = "coqpit",
+        *,
         relaxed_parser: bool = False,
     ) -> list[str]:
         """Update config values from argparse arguments. Ignore unknown arguments.
@@ -895,9 +926,13 @@ class Coqpit(Serializable, CoqpitType):
            This is analog to argparse.ArgumentParser.parse_known_args (vs parse_args).
 
         Args:
-            args (namespace or list of str, optional): parsed argparse.Namespace or list of command line parameters. If unspecified will use a newly created parser with ```init_argparse()```.
-            arg_prefix: prefix to add to CLI parameters. Gets forwarded to ```init_argparse``` when ```args``` is not passed.
-            relaxed_parser (bool, optional): If True, do not force all the fields to have compatible types with the argparser. Defaults to False.
+            args (namespace or list of str, optional): parsed argparse.Namespace
+              or list of command line parameters. If unspecified will use a
+              newly created parser with ```init_argparse()```.
+            arg_prefix: prefix to add to CLI parameters. Gets forwarded to
+              ```init_argparse``` when ```args``` is not passed.
+            relaxed_parser (bool, optional): If True, do not force all the fields
+              to have compatible types with the argparser. Defaults to False.
 
         Returns:
             List of unknown parameters.
@@ -933,10 +968,14 @@ class Coqpit(Serializable, CoqpitType):
         Args:
             instance (Coqpit, optional): instance of the given Coqpit class
                                          to initialize any default values.
-            parser (argparse.ArgumentParser, optional): argparse.ArgumentParser instance. If unspecified a new one will be created.
-            arg_prefix (str, optional): Prefix to be used for the argument name. Defaults to 'coqpit'.
-            help_prefix (str, optional): Prefix to be used for the argument description. Defaults to ''.
-            relaxed_parser (bool, optional): If True, do not force all the fields to have compatible types with the argparser. Defaults to False.
+            parser (argparse.ArgumentParser, optional): argparse.ArgumentParser
+              instance. If unspecified a new one will be created.
+            arg_prefix (str, optional): Prefix to be used for the argument name.
+              Defaults to 'coqpit'.
+            help_prefix (str, optional): Prefix to be used for the argument
+              description. Defaults to ''.
+            relaxed_parser (bool, optional): If True, do not force all the fields
+              to have compatible types with the argparser. Defaults to False.
 
         Returns:
             argparse.ArgumentParser: parser instance with the new arguments.
@@ -949,7 +988,8 @@ class Coqpit(Serializable, CoqpitType):
             # use the current value of the field to prevent dropping the current value,
             # else use the default value of the field
             field_default = vars(cls_or_instance).get(
-                field.name, field.default if field.default is not _MISSING else None
+                field.name,
+                field.default if field.default is not _MISSING else None,
             )
             field_type = field.type
             field_default_factory = field.default_factory
@@ -968,11 +1008,12 @@ class Coqpit(Serializable, CoqpitType):
         return parser
 
 
-def check_argument(
+def check_argument(  # noqa: C901, PLR0913
     name: str,
     c: dict[str, Any],
+    *,
     is_path: bool = False,
-    prerequest: str | None = None,
+    prerequest: list[str] | str | None = None,
     enum_list: list[Any] | None = None,
     max_val: float | None = None,
     min_val: float | None = None,

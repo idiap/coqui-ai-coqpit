@@ -30,7 +30,7 @@ class Reference(Coqpit):
             Person(name="Eren", age=11),
             Person(name="Geren", age=12),
             Person(name="Ceren", age=15),
-        ]
+        ],
     )
     some_dict: dict[str, Optional[int]] = field(default_factory=lambda: {"a": 1, "b": 2, "c": None})
 

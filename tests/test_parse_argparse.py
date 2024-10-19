@@ -24,10 +24,12 @@ class SimpleConfig(Coqpit):
     empty_int_list: Optional[list[int]] = field(default=None, metadata={"help": "int list without default value"})
     empty_str_list: Optional[list[str]] = field(default=None, metadata={"help": "str list without default value"})
     list_with_default_factory: list[str] = field(
-        default_factory=list, metadata={"help": "str list with default factory"}
+        default_factory=list,
+        metadata={"help": "str list with default factory"},
     )
 
-    # mylist_without_default: List[SimplerConfig] = field(default=None, metadata={'help': 'list of SimplerConfig'})  # NOT SUPPORTED YET!
+    # TODO: not supported yet
+    # mylist_without_default: List[SimplerConfig] = field(default=None)  noqa: ERA001
 
     def check_values(self) -> None:
         """Check config fields"""
@@ -112,7 +114,7 @@ def test_boolean_parse() -> None:
 
     try:
         config.parse_args(args)
-        raise AssertionError("should not reach this")  # pragma: no cover
+        raise AssertionError  # pragma: no cover, should not reach this
     except SystemExit:
         pass
 
@@ -126,7 +128,7 @@ def test_argparse_with_required_field() -> None:
     args = ["--coqpit.val_a", "10"]
     try:
         c = ArgparseWithRequiredField()  # type: ignore[call-arg]
-        raise AssertionError("should not reach this")  # pragma: no cover
+        raise AssertionError  # pragma: no cover, should not reach this
     except TypeError:
         # __init__ should fail due to missing val_a
         pass
@@ -151,7 +153,8 @@ def test_init_argparse_list_and_nested() -> None:
             metadata={"help": "list of SimplerConfig2"},
         )
 
-        # mylist_without_default: List[SimplerConfig2] = field(default=None, metadata={'help': 'list of SimplerConfig2'})  # NOT SUPPORTED YET!
+        # TODO: not supported yet
+        # mylist_without_default: List[SimplerConfig2] = field(default=None)  # noqa: ERA001
 
         def check_values(self) -> None:
             """Check config fields"""

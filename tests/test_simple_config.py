@@ -1,5 +1,5 @@
-import os
 from dataclasses import asdict, dataclass, field
+from pathlib import Path
 from typing import Any, Optional, Union
 
 from coqpit.coqpit import MISSING, Coqpit, check_argument
@@ -20,7 +20,7 @@ class SimpleConfig(Coqpit):
     # list of list
     val_listoflist: list[list[int]] = field(default_factory=lambda: [[1, 2], [3, 4]])
     val_listofunion: list[list[Union[str, int, bool]]] = field(
-        default_factory=lambda: [[1, 3], [1, "Hi!"], [True, False]]
+        default_factory=lambda: [[1, 3], [1, "Hi!"], [True, False]],
     )
 
     def check_values(
@@ -34,7 +34,7 @@ class SimpleConfig(Coqpit):
 
 
 def test_simple_config() -> None:
-    file_path = os.path.dirname(os.path.abspath(__file__))
+    file_path = Path(__file__).resolve().parent / "example_config.json"
     config = SimpleConfig()
 
     # try MISSING class argument
@@ -47,8 +47,8 @@ def test_simple_config() -> None:
     # try serialization and deserialization
     print(config.serialize())
     print(config.to_json())
-    config.save_json(os.path.join(file_path, "example_config.json"))
-    config.load_json(os.path.join(file_path, "example_config.json"))
+    config.save_json(file_path)
+    config.load_json(file_path)
     config.pprint()
 
     # try `dict` interface

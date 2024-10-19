@@ -1,5 +1,5 @@
-import os
 from dataclasses import asdict, dataclass, field
+from pathlib import Path
 from typing import Optional, Union
 
 from coqpit import Coqpit, check_argument
@@ -39,16 +39,16 @@ class NestedConfig(Coqpit):
 
 
 def test_nested() -> None:
-    file_path = os.path.dirname(os.path.abspath(__file__))
+    file_path = Path(__file__).resolve().parent / "example_config.json"
     # init 🐸 dataclass
     config = NestedConfig()
 
     # save to a json file
-    config.save_json(os.path.join(file_path, "example_config.json"))
+    config.save_json(file_path)
     # load a json file
     config2 = NestedConfig(val_e=500)
     # update the config with the json file.
-    config2.load_json(os.path.join(file_path, "example_config.json"))
+    config2.load_json(file_path)
     # now they should be having the same values.
     assert config == config2
 
