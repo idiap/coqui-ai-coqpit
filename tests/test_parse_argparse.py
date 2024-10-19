@@ -70,7 +70,7 @@ def test_parse_argparse() -> None:
     )
 
     # create and init argparser with Coqpit
-    parser = config.init_argparse()
+    parser = config.init_argparse(instance=config)
     parser.print_help()
 
     # parse the argsparser

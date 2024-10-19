@@ -477,15 +477,15 @@ def _get_help(field: Field[Any]) -> str:
         return ""
 
 
-def _init_argparse(
-    parser,
-    field_name,
-    field_type,
-    field_default,
-    field_default_factory,
-    field_help,
-    arg_prefix="",
-    help_prefix="",
+def _add_argument(
+    parser: argparse.ArgumentParser,
+    field_name: str,
+    field_type: FieldType,
+    field_default: Any,
+    field_default_factory: Callable[[], Any] | Literal[_MISSING_TYPE.MISSING],
+    field_help: str,
+    arg_prefix: str = "",
+    help_prefix: str = "",
     *,
     relaxed_parser: bool = False,
 ) -> argparse.ArgumentParser:
@@ -548,8 +548,9 @@ def _init_argparse(
         else:
             # If a default value is defined, just enable editing the values from argparse
             # TODO: allow inserting a new value/obj to the end of the list.
+            assert isinstance(default, list)
             for idx, fv in enumerate(default):
-                parser = _init_argparse(
+                parser = _add_argument(
                     parser,
                     str(idx),
                     list_field_type,
@@ -565,9 +566,11 @@ def _init_argparse(
         if not relaxed_parser:
             msg = " [!] Parsing `Union` field from argparse is not yet implemented. Please create an issue."
             raise NotImplementedError(msg)
-    elif issubclass(field_type, Serializable):
+    elif not _is_union(field_type) and issubclass(field_type, Coqpit):
+        assert isinstance(default, Coqpit)
         return default.init_argparse(
-            parser,
+            instance=default,
+            parser=parser,
             arg_prefix=arg_prefix,
             help_prefix=help_prefix,
             relaxed_parser=relaxed_parser,
@@ -787,12 +790,14 @@ class Coqpit(Serializable, CoqpitType):
         """
         if not args:
             # If args was not specified, parse from sys.argv
-            parser = cls.init_argparse(cls, arg_prefix=arg_prefix)
-            args = parser.parse_args()  # pylint: disable=E1120, E1111
+            parser = cls.init_argparse(arg_prefix=arg_prefix)
+            args = parser.parse_args()
         if isinstance(args, list):
-            # If a list was passed in (eg. the second result of `parse_known_args`, run that through argparse first to get a parsed Namespace
-            parser = cls.init_argparse(cls, arg_prefix=arg_prefix)
-            args = parser.parse_args(args)  # pylint: disable=E1120, E1111
+            # If a list was passed in (eg. the second result of
+            # `parse_known_args`, run that through argparse first to get a
+            # parsed Namespace
+            parser = cls.init_argparse(arg_prefix=arg_prefix)
+            args = parser.parse_args(args)
 
         # Handle list and object attributes with defaults, which can be modified
         # directly (eg. --coqpit.list.0.val_a 1), by constructing real objects
@@ -837,11 +842,13 @@ class Coqpit(Serializable, CoqpitType):
         """
         if not args:
             # If args was not specified, parse from sys.argv
-            parser = self.init_argparse(arg_prefix=arg_prefix)
+            parser = self.init_argparse(instance=self, arg_prefix=arg_prefix)
             args = parser.parse_args()
         if isinstance(args, list):
-            # If a list was passed in (eg. the second result of `parse_known_args`, run that through argparse first to get a parsed Namespace
-            parser = self.init_argparse(arg_prefix=arg_prefix)
+            # If a list was passed in (eg. the second result of
+            # `parse_known_args`, run that through argparse first
+            # to get a parsed Namespace
+            parser = self.init_argparse(instance=self, arg_prefix=arg_prefix)
             args = parser.parse_args(args)
 
         args_dict = vars(args)
@@ -879,21 +886,26 @@ class Coqpit(Serializable, CoqpitType):
         """
         if not args:
             # If args was not specified, parse from sys.argv
-            parser = self.init_argparse(arg_prefix=arg_prefix, relaxed_parser=relaxed_parser)
+            parser = self.init_argparse(instance=self, arg_prefix=arg_prefix, relaxed_parser=relaxed_parser)
             args, unknown = parser.parse_known_args()
         if isinstance(args, list):
-            # If a list was passed in (eg. the second result of `parse_known_args`, run that through argparse first to get a parsed Namespace
-            parser = self.init_argparse(arg_prefix=arg_prefix, relaxed_parser=relaxed_parser)
+            # If a list was passed in (eg. the second result of
+            # `parse_known_args`, run that through argparse first to get a
+            # parsed Namespace
+            parser = self.init_argparse(instance=self, arg_prefix=arg_prefix, relaxed_parser=relaxed_parser)
             args, unknown = parser.parse_known_args(args)
 
         self.parse_args(args)
         return unknown
 
+    @classmethod
     def init_argparse(
-        self,
-        parser: Optional[argparse.ArgumentParser] = None,
-        arg_prefix="coqpit",
-        help_prefix="",
+        cls,
+        *,
+        instance: Self | None = None,
+        parser: argparse.ArgumentParser | None = None,
+        arg_prefix: str = "coqpit",
+        help_prefix: str = "",
         relaxed_parser: bool = False,
     ) -> argparse.ArgumentParser:
         """Create an argparse parser that can parse the Coqpit fields.
@@ -901,6 +913,8 @@ class Coqpit(Serializable, CoqpitType):
         This allows to edit values through command-line.
 
         Args:
+            instance (Coqpit, optional): instance of the given Coqpit class
+                                         to initialize any default values.
             parser (argparse.ArgumentParser, optional): argparse.ArgumentParser instance. If unspecified a new one will be created.
             arg_prefix (str, optional): Prefix to be used for the argument name. Defaults to 'coqpit'.
             help_prefix (str, optional): Prefix to be used for the argument description. Defaults to ''.
@@ -911,15 +925,18 @@ class Coqpit(Serializable, CoqpitType):
         """
         if not parser:
             parser = argparse.ArgumentParser()
-        class_fields = fields(self)
+        cls_or_instance = cls if instance is None else instance
+        class_fields = fields(cls_or_instance)
         for field in class_fields:
             # use the current value of the field to prevent dropping the current value,
             # else use the default value of the field
-            field_default = vars(self).get(field.name, field.default if field.default is not _MISSING else None)
+            field_default = vars(cls_or_instance).get(
+                field.name, field.default if field.default is not _MISSING else None
+            )
             field_type = field.type
             field_default_factory = field.default_factory
             field_help = _get_help(field)
-            _init_argparse(
+            _add_argument(
                 parser,
                 field.name,
                 field_type,
