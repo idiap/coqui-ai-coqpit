@@ -48,67 +48,61 @@ def _is_primitive_type(field_type: FieldType) -> TypeGuard[type]:
     return field_type is int or field_type is float or field_type is str or field_type is bool
 
 
-def is_list(arg_type: Any) -> bool:
+def _is_list(field_type: FieldType) -> TypeGuard[type]:
     """Check if the input type is `list`.
 
     Args:
-        arg_type (typing.Any): input type.
+        field_type: input type.
 
     Returns:
         bool: True if input type is `list`
     """
-    try:
-        return arg_type is list or arg_type is list or arg_type.__origin__ is list or arg_type.__origin__ is list
-    except AttributeError:
-        return False
+    return field_type is list or typing.get_origin(field_type) is list
 
 
-def is_dict(arg_type: Any) -> bool:
+def _is_dict(field_type: FieldType) -> TypeGuard[type]:
     """Check if the input type is `dict`.
 
     Args:
-        arg_type (typing.Any): input type.
+        field_type: input type.
 
     Returns:
         bool: True if input type is `dict`
     """
-    try:
-        return arg_type is dict or arg_type is dict or arg_type.__origin__ is dict
-    except AttributeError:
-        return False
+    return field_type is dict or typing.get_origin(field_type) is dict
 
 
-def is_union(arg_type: Any) -> bool:
+def _is_union(field_type: FieldType) -> TypeIs[UnionType]:
     """Check if the input type is `Union`.
 
     Args:
-        arg_type (typing.Any): input type.
+        field_type: input type.
 
     Returns:
         bool: True if input type is `Union`
     """
-    try:
-        return safe_issubclass(arg_type.__origin__, Union)
-    except AttributeError:
-        return False
+    origin = typing.get_origin(field_type)
+    return origin is Union or origin is UnionType
 
 
-def safe_issubclass(cls, classinfo) -> bool:
-    """Check if the input type is a subclass of the given class.
+def _is_union_and_not_simple_optional(field_type: FieldType) -> TypeGuard[UnionType]:
+    """Check if the input type is `Union`.
+
+    Note: `int | None` would be of type Union, but here we don't consider such
+    cases where the only other accepted type is None.
 
     Args:
-        cls (type): input type.
-        classinfo (type): parent class.
+        field_type: input type.
 
     Returns:
-        bool: True if the input type is a subclass of the given class
+        bool: True if input type is `Union` and not optional type like `int | None`
     """
-    try:
-        r = issubclass(cls, classinfo)
-    except Exception:  # pylint: disable=broad-except
-        return cls is classinfo
-    else:
-        return r
+    args = typing.get_args(field_type)
+    is_python_union = _is_union(field_type)
+    if is_python_union and len(args) == 2 and NoneType in args:
+        # This is an Optional type like `int | None`
+        return False
+    return is_python_union
 
 
 def _default_value(x: Field[_T]) -> _T | Literal[_MISSING_TYPE.MISSING]:
@@ -127,17 +121,16 @@ def _default_value(x: Field[_T]) -> _T | Literal[_MISSING_TYPE.MISSING]:
     return x.default
 
 
-def _is_optional_field(field) -> bool:
-    """Check if the input field is optional.
+def _is_optional_field(field_type: FieldType) -> TypeGuard[UnionType]:
+    """Check if the input field type is optional.
 
     Args:
-        field (Field): input Field to check.
+        field_type: input Field's type to check.
 
     Returns:
-        bool: True if the input field is optional.
+        bool: True if the input field type is optional.
     """
-    # return isinstance(field.type, _GenericAlias) and type(None) in getattr(field.type, "__args__")
-    return type(None) in field.type.__args__
+    return NoneType in typing.get_args(field_type)
 
 
 def _drop_none_type(field_type: FieldType) -> FieldType:
@@ -210,22 +203,17 @@ def _deserialize_list(x: list[_T], field_type: FieldType) -> list[_T]:
     Returns:
         [List]: deserialized list.
     """
-    field_args = None
-    if hasattr(field_type, "__args__") and field_type.__args__:
-        field_args = field_type.__args__
-    elif hasattr(field_type, "__parameters__") and field_type.__parameters__:
-        # bandaid for python 3.6
-        field_args = field_type.__parameters__
-    if field_args:
-        if len(field_args) > 1:
-            msg = " [!] Coqpit does not support multi-type hinted 'List'"
-            raise ValueError(msg)
-        field_arg = field_args[0]
-        # if field type is TypeVar set the current type by the value's type.
-        if isinstance(field_arg, TypeVar):
-            field_arg = type(x)
-        return [_deserialize(xi, field_arg) for xi in x]
-    return x
+    field_args = typing.get_args(field_type)
+    if len(field_args) == 0:
+        return x
+    elif len(field_args) > 1:
+        msg = "Coqpit does not support multi-type hinted 'List'"
+        raise ValueError(msg)
+    field_arg = field_args[0]
+    # if field type is TypeVar set the current type by the value's type.
+    if isinstance(field_arg, TypeVar):
+        field_arg = type(x)
+    return [_deserialize(xi, field_arg) for xi in x]
 
 
 def _deserialize_union(x: Any, field_type: UnionType) -> Any:
@@ -238,7 +226,7 @@ def _deserialize_union(x: Any, field_type: UnionType) -> Any:
     Returns:
         [Any]: deserialized value.
     """
-    for arg in field_type.__args__:
+    for arg in typing.get_args(field_type):
         # stop after first matching type in Union
         try:
             x = _deserialize(x, arg)
@@ -283,15 +271,20 @@ def _deserialize(x: Any, field_type: Any) -> Any:
 
     """
     # pylint: disable=too-many-return-statements
-    if is_dict(field_type):
+    assert not isinstance(field_type, str)
+    if _is_dict(_drop_none_type(field_type)):
         return _deserialize_dict(x)
-    if is_list(field_type):
-        return _deserialize_list(x, field_type)
-    if is_union(field_type):
+    if _is_list(_drop_none_type(field_type)):
+        return _deserialize_list(x, _drop_none_type(field_type))
+    if _is_union_and_not_simple_optional(field_type):
         return _deserialize_union(x, field_type)
-    if issubclass(field_type, Serializable):
+    if not _is_union(field_type) and isinstance(field_type, type) and issubclass(field_type, Serializable):
         return field_type.deserialize_immutable(x)
-    if _is_primitive_type(field_type):
+    if _drop_none_type(field_type) is Path:
+        if x is None and _is_optional_field(field_type):
+            return None
+        return Path(x)
+    if _is_primitive_type(_drop_none_type(field_type)):
         return _deserialize_primitive_types(x, field_type)
     msg = f" [!] '{type(x)}' value type of '{x}' does not match '{field_type}' field type."
     raise ValueError(msg)
@@ -351,7 +344,7 @@ class Serializable:
         for field in dataclass_fields:
             value = getattr(self, field.name)
 
-            if value is None and not _is_optional_field(field):
+            if value is None and not _is_optional_field(field.type):
                 msg = f"{field.name} is not optional"
                 raise TypeError(msg)
 
@@ -495,12 +488,17 @@ def _init_argparse(
         has_default = True
         default = field_default_factory()
 
-    if not has_default and not _is_primitive_type(field_type) and not is_list(field_type):
-        # aggregate types (fields with a Coqpit subclass as type) are not supported without None
+    if (
+        not has_default
+        and not _is_primitive_type(_drop_none_type(field_type))
+        and not _is_list(_drop_none_type(field_type))
+    ):
+        # aggregate types (fields with a Coqpit subclass as type) are not
+        # supported without None
         return parser
     arg_prefix = field_name if arg_prefix == "" else f"{arg_prefix}.{field_name}"
     help_prefix = field_help if help_prefix == "" else f"{help_prefix} - {field_help}"
-    if is_dict(field_type):  # pylint: disable=no-else-raise
+    if _is_dict(field_type):  # pylint: disable=no-else-raise
         # NOTE: accept any string in json format as input to dict field.
         parser.add_argument(
             f"--{arg_prefix}",
@@ -508,19 +506,19 @@ def _init_argparse(
             default=json.dumps(field_default) if field_default else None,
             type=json.loads,
         )
-    elif is_list(field_type):
+    elif _is_list(_drop_none_type(field_type)):
         # TODO: We need a more clear help msg for lists.
-        if hasattr(field_type, "__args__"):  # if the list is hinted
-            if len(field_type.__args__) > 1 and not relaxed_parser:
-                msg = " [!] Coqpit does not support multi-type hinted 'List'"
-                raise ValueError(msg)
-            list_field_type = field_type.__args__[0]
-        else:
-            msg = " [!] Coqpit does not support un-hinted 'List'"
+        field_args = typing.get_args(_drop_none_type(field_type))
+        if len(field_args) > 1 and not relaxed_parser:
+            msg = "Coqpit does not support multi-type hinted 'List'"
             raise ValueError(msg)
+        elif len(field_args) == 0:
+            msg = "Coqpit does not support un-hinted 'List'"
+            raise ValueError(msg)
+        list_field_type = field_args[0]
 
         # TODO: handle list of lists
-        if is_list(list_field_type) and relaxed_parser:
+        if _is_list(list_field_type) and relaxed_parser:
             return parser
 
         if not has_default or field_default_factory is list:
@@ -550,7 +548,7 @@ def _init_argparse(
                     arg_prefix=f"{arg_prefix}",
                     relaxed_parser=relaxed_parser,
                 )
-    elif is_union(field_type):
+    elif _is_union_and_not_simple_optional(field_type):
         # TODO: currently I don't know how to handle Union type on argparse
         if not relaxed_parser:
             msg = " [!] Parsing `Union` field from argparse is not yet implemented. Please create an issue."
@@ -577,11 +575,13 @@ def _init_argparse(
             help=f"Coqpit Field: {help_prefix}",
             metavar="true/false",
         )
-    elif _is_primitive_type(field_type):
+    elif _is_primitive_type(_drop_none_type(field_type)):
+        base_type = _drop_none_type(field_type)
+        assert not _is_union(base_type)
         parser.add_argument(
             f"--{arg_prefix}",
             default=field_default,
-            type=field_type,
+            type=base_type,
             help=f"Coqpit Field: {help_prefix}",
         )
     elif not relaxed_parser:
@@ -790,7 +790,7 @@ class Coqpit(Serializable, MutableMapping):
                 has_default = True
                 default = field_default_factory()
 
-            if has_default and (not _is_primitive_type(field.type) or is_list(field.type)):
+            if has_default and (not _is_primitive_type(field.type) or _is_list(field.type)):
                 args_with_lists_processed[field.name] = default
 
         args_dict = vars(args)
