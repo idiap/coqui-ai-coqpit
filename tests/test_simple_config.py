@@ -37,12 +37,17 @@ def test_simple_config() -> None:
     file_path = Path(__file__).resolve().parent / "example_config.json"
     config = SimpleConfig()
 
+    assert config._is_initialized()
+
     # try MISSING class argument
     try:
         _ = config.val_k
     except AttributeError:
         print(" val_k needs a different value before accessing it.")
     config.val_k = 1000
+
+    assert "val_a" in config
+    assert config.has("val_a")
 
     # try serialization and deserialization
     print(config.serialize())

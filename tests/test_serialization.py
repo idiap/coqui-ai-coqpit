@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
-from coqpit import Coqpit
+from coqpit.coqpit import Coqpit, _deserialize_list
 
 
 @dataclass
@@ -59,3 +59,10 @@ def test_serialization() -> None:
     assert ref_config.some_dict["a"] == new_config.some_dict["a"]
     assert ref_config.some_dict["b"] == new_config.some_dict["b"]
     assert ref_config.some_dict["c"] == new_config.some_dict["c"]
+
+
+def test_deserialize_list() -> None:
+    assert _deserialize_list([1, 2, 3], list) == [1, 2, 3]
+    assert _deserialize_list([1, 2, 3], list[int]) == [1, 2, 3]
+    assert _deserialize_list([1, 2, 3], list[float]) == [1.0, 2.0, 3.0]
+    assert _deserialize_list([1, 2, 3], list[str]) == ["1", "2", "3"]

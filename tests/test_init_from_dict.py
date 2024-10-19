@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-import pytest  # type: ignore[import-not-found]
+import pytest
 
 from coqpit import Coqpit
 

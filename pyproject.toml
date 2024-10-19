@@ -75,5 +75,6 @@ convention = "google"
     "FA100",
     "PLR2004",
     "S101",
+    "SLF001",
     "T201",
 ]

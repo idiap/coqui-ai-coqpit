@@ -201,7 +201,7 @@ def _deserialize_dict(x: dict[Any, Any]) -> dict[Any, Any]:
     return out_dict
 
 
-def _deserialize_list(x: list[_T], field_type: FieldType) -> list[_T]:
+def _deserialize_list(x: list[Any], field_type: FieldType) -> list[Any]:
     """Deserialize values for List typed fields.
 
     Args:
