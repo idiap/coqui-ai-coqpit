@@ -1,13 +1,10 @@
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools.packages.find]
-include = ["coqpit*"]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "coqpit"
-version = "0.0.17"
+version = "0.1.0"
 description = "Simple (maybe too simple), light-weight config management through python data-classes."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -32,11 +29,14 @@ classifiers = [
     "Operating System :: MacOS",
     "Operating System :: Microsoft :: Windows",
 ]
-dependencies = []
+dependencies = [
+    "typing_extensions>=4.10",
+]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "coverage>=7",
+    "mypy>=1.12.0",
     "pre-commit>=3",
     "pytest>=8",
     "ruff==0.6.9",
@@ -46,10 +46,35 @@ dev-dependencies = [
 Repository = "https://github.com/idiap/coqui-ai-coqpit"
 Issues = "https://github.com/idiap/coqui-ai-coqpit/issues"
 
+[tool.hatch.build]
+exclude = [
+    "/.github",
+    "/.gitignore",
+    "/.pre-commit-config.yaml",
+    "/Makefile",
+    "/tests",
+]
+
 [tool.ruff]
 target-version = "py39"
 line-length = 120
-lint.extend-select = ["I", "UP", "B", "W", "A", "PLC", "PLE"]
+lint.select = ["ALL"]
+lint.ignore = [
+    "ANN401",
+    "D104",
+    "FIX",
+    "TD",
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "D",
+    "FA100",
+    "PLR2004",
+    "S101",
+    "SLF001",
+    "T201",
+]

@@ -1,9 +1,0 @@
-include README.md
-include LICENSE.txt
-recursive-include coqpit *.json
-recursive-include coqpit *.html
-recursive-include coqpit *.png
-recursive-include coqpit *.md
-recursive-include coqpit *.py
-recursive-include coqpit *.pyx
-recursive-include images *.png

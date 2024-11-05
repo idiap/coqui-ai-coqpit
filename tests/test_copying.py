@@ -9,7 +9,7 @@ class SimpleConfig(Coqpit):
     val_a: int = 10
 
 
-def test_copying():
+def test_copying() -> None:
     config = SimpleConfig()
 
     config_new = config.copy()

@@ -2,9 +2,12 @@
 
 [![CI](https://github.com/idiap/coqui-ai-coqpit/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/idiap/coqui-ai-coqpit/actions/workflows/main.yml)
 
-Simple, light-weight and no dependency config handling through python data classes with to/from JSON serialization/deserialization.
+Simple, light-weight and no dependency config handling through python data
+classes with to/from JSON serialization/deserialization.
 
-Currently it is being used by [🐸TTS](https://github.com/idiap/coqui-ai-TTS).
+Fork of the [original, unmaintained repository](https://github.com/coqui-ai/coqpit). New PyPI package: [coqpit-config](https://pypi.org/project/coqpit-config)
+
+Currently it is being used by [coqui-tts](https://github.com/idiap/coqui-ai-TTS).
 
 ## ❔ Why I need this
 What I need from a ML configuration library...

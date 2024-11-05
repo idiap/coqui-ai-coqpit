@@ -1,6 +1,7 @@
 {
     "name": "Coqpit",
     "size": 3,
+    "path": "a/b",
     "people": [
         {
             "name": "Eren",
@@ -14,5 +15,10 @@
             "name": "Ceren",
             "age": 15
         }
-    ]
+    ],
+    "some_dict": {
+        "a": 1,
+        "b": 2,
+        "c": null
+    }
 }
