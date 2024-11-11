@@ -1,5 +1,8 @@
 # 👩‍✈️ Coqpit
 
+[![PyPI - License](https://img.shields.io/pypi/l/coqpit-config)](https://github.com/idiap/coqui-ai-coqpit/blob/main/LICENSE.txt)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/coqpit-config)
+[![PyPI - Version](https://img.shields.io/pypi/v/coqpit-config)](https://pypi.org/project/coqpit-config)
 [![CI](https://github.com/idiap/coqui-ai-coqpit/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/idiap/coqui-ai-coqpit/actions/workflows/main.yml)
 
 Simple, light-weight and no dependency config handling through python data
