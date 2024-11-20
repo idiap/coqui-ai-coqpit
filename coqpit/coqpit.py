@@ -937,6 +937,7 @@ class Coqpit(Serializable, CoqpitType):
         Returns:
             List of unknown parameters.
         """
+        unknown: list[str] = []
         if not args:
             # If args was not specified, parse from sys.argv
             parser = self.init_argparse(instance=self, arg_prefix=arg_prefix, relaxed_parser=relaxed_parser)
@@ -948,7 +949,7 @@ class Coqpit(Serializable, CoqpitType):
             parser = self.init_argparse(instance=self, arg_prefix=arg_prefix, relaxed_parser=relaxed_parser)
             args, unknown = parser.parse_known_args(args)
 
-        self.parse_args(args)
+        self.parse_args(args, arg_prefix=arg_prefix)
         return unknown
 
     @classmethod

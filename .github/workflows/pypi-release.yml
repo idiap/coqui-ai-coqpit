@@ -19,12 +19,8 @@ jobs:
           if [[ "v$version" != "$tag" ]]; then
             exit 1
           fi
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          version: "0.4.27"
-          enable-cache: true
-          cache-dependency-glob: "**/pyproject.toml"
+      - name: Setup uv
+        uses: ./.github/actions/setup-uv
       - name: Set up Python
         run: uv python install
       - name: Build sdist and wheel

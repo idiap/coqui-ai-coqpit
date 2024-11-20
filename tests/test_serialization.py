@@ -1,8 +1,10 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
-from coqpit.coqpit import Coqpit, _deserialize_list
+import pytest
+
+from coqpit.coqpit import Coqpit, _deserialize_list, _deserialize_primitive_types
 
 
 @dataclass
@@ -66,3 +68,36 @@ def test_deserialize_list() -> None:
     assert _deserialize_list([1, 2, 3], list[int]) == [1, 2, 3]
     assert _deserialize_list([1, 2, 3], list[float]) == [1.0, 2.0, 3.0]
     assert _deserialize_list([1, 2, 3], list[str]) == ["1", "2", "3"]
+
+
+# TODO: `type: ignore` can probably be removed when switching to Python 3.10
+#       Union syntax (e.g. str | int)
+def test_deserialize_primitive_type() -> None:
+    cases = (
+        (True, bool, True),
+        (False, bool, False),
+        ("a", str, "a"),
+        ("3", str, "3"),
+        (3, int, 3),
+        (3, float, 3.0),
+        (3, str, "3"),
+        (3.0, str, "3.0"),
+        (3, bool, True),
+        ("a", Union[str, None], "a"),
+        ("3", Union[str, None], "3"),
+        (3, Union[int, None], 3),
+        (3, Union[float, None], 3.0),
+        (None, Union[str, None], None),
+        (None, Union[int, None], None),
+        (None, Union[float, None], None),
+        (None, Union[str, None], None),
+        (float("inf"), float, float("inf")),
+        (float("inf"), int, float("inf")),
+        (float("-inf"), float, float("-inf")),
+        (float("-inf"), int, float("-inf")),
+    )
+    for value, field_type, expected in cases:
+        assert _deserialize_primitive_types(value, field_type) == expected  # type: ignore[arg-type]
+
+    with pytest.raises(TypeError):
+        _deserialize_primitive_types(3, Coqpit)
