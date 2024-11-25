@@ -1,18 +1,17 @@
 from dataclasses import asdict, dataclass, field
-from typing import Optional
 
 from coqpit.coqpit import Coqpit, check_argument
 
 
 @dataclass
 class SimplerConfig(Coqpit):
-    val_a: Optional[int] = field(default=None, metadata={"help": "this is val_a"})
+    val_a: int | None = field(default=None, metadata={"help": "this is val_a"})
 
 
 @dataclass
 class SimpleConfig(Coqpit):
     val_a: int = field(default=10, metadata={"help": "this is val_a of SimpleConfig"})
-    val_b: Optional[int] = field(default=None, metadata={"help": "this is val_b"})
+    val_b: int | None = field(default=None, metadata={"help": "this is val_b"})
     val_c: str = "Coqpit is great!"
     val_dict: dict[str, int] = field(default_factory=lambda: {"val_a": 100, "val_b": 200, "val_c": 300})
     mylist_with_default: list[SimplerConfig] = field(
@@ -21,8 +20,8 @@ class SimpleConfig(Coqpit):
     )
     int_list: list[int] = field(default_factory=lambda: [1, 2, 3], metadata={"help": "int"})
     str_list: list[str] = field(default_factory=lambda: ["veni", "vidi", "vici"], metadata={"help": "str"})
-    empty_int_list: Optional[list[int]] = field(default=None, metadata={"help": "int list without default value"})
-    empty_str_list: Optional[list[str]] = field(default=None, metadata={"help": "str list without default value"})
+    empty_int_list: list[int] | None = field(default=None, metadata={"help": "int list without default value"})
+    empty_str_list: list[str] | None = field(default=None, metadata={"help": "str list without default value"})
     list_with_default_factory: list[str] = field(
         default_factory=list,
         metadata={"help": "str list with default factory"},
@@ -140,13 +139,13 @@ def test_argparse_with_required_field() -> None:
 def test_init_argparse_list_and_nested() -> None:
     @dataclass
     class SimplerConfig2(Coqpit):
-        val_a: Optional[int] = field(default=None, metadata={"help": "this is val_a"})
+        val_a: int | None = field(default=None, metadata={"help": "this is val_a"})
 
     @dataclass
     class SimpleConfig2(Coqpit):
         val_req: str  # required field
         val_a: int = field(default=10, metadata={"help": "this is val_a of SimpleConfig2"})
-        val_b: Optional[int] = field(default=None, metadata={"help": "this is val_b"})
+        val_b: int | None = field(default=None, metadata={"help": "this is val_b"})
         nested_config: SimplerConfig2 = field(default_factory=lambda: SimplerConfig2())
         mylist_with_default: list[SimplerConfig2] = field(
             default_factory=lambda: [SimplerConfig2(val_a=100), SimplerConfig2(val_a=999)],

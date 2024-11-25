@@ -1,6 +1,5 @@
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Optional, Union
 
 from coqpit import Coqpit, check_argument
 
@@ -8,7 +7,7 @@ from coqpit import Coqpit, check_argument
 @dataclass
 class SimpleConfig(Coqpit):
     val_a: int = 10
-    val_b: Optional[int] = None
+    val_b: int | None = None
     val_c: str = "Coqpit is great!"
 
     def check_values(self) -> None:
@@ -22,11 +21,11 @@ class SimpleConfig(Coqpit):
 @dataclass
 class NestedConfig(Coqpit):
     val_d: int = 10
-    val_e: Optional[int] = None
+    val_e: int | None = None
     val_f: str = "Coqpit is great!"
-    sc_list: Optional[list[SimpleConfig]] = None
+    sc_list: list[SimpleConfig] | None = None
     sc: SimpleConfig = field(default_factory=lambda: SimpleConfig())
-    union_var: Union[list[SimpleConfig], SimpleConfig] = field(default_factory=lambda: [SimpleConfig(), SimpleConfig()])
+    union_var: list[SimpleConfig] | SimpleConfig = field(default_factory=lambda: [SimpleConfig(), SimpleConfig()])
 
     def check_values(self) -> None:
         """Check config fields"""

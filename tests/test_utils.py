@@ -12,7 +12,7 @@ def test_is_union() -> None:
         (Union[str, None], True),
         (int, False),
         (list[int], False),
-        (list[Union[str, int]], False),
+        (list[str | int], False),
     )
     for item, expected in cases:
         assert _is_union(item) == expected  # type: ignore[arg-type]
@@ -25,7 +25,7 @@ def test_is_union_and_not_simple_optional() -> None:
         (Union[list[int], None], False),
         (int, False),
         (list[int], False),
-        (list[Union[str, int]], False),
+        (list[str | int], False),
     )
     for item, expected in cases:
         assert _is_union_and_not_simple_optional(item) == expected  # type: ignore[arg-type]
@@ -38,7 +38,7 @@ def test_is_optional_field() -> None:
         (Union[list[int], None], True),
         (int, False),
         (list[int], False),
-        (list[Union[str, int]], False),
+        (list[str | int], False),
     )
     for item, expected in cases:
         assert _is_optional_field(item) == expected  # type: ignore[arg-type]
