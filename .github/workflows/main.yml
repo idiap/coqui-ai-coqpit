@@ -17,9 +17,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup uv
+        # Installs Python based on ${{ matrix.python-version }}
         uses: ./.github/actions/setup-uv
-      - name: Set up Python ${{ matrix.python-version }}
-        run: uv python install ${{ matrix.python-version }}
       - name: Lint check
         run: make lint
       - name: Unit tests
