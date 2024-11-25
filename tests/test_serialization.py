@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 
 import pytest
 
@@ -9,23 +9,23 @@ from coqpit.coqpit import Coqpit, _deserialize_list, _deserialize_primitive_type
 
 @dataclass
 class Person(Coqpit):
-    name: Optional[str] = None
-    age: Optional[int] = None
+    name: str | None = None
+    age: int | None = None
 
 
 @dataclass
 class Group(Coqpit):
-    name: Optional[str] = None
-    size: Optional[int] = None
-    path: Optional[Path] = None
+    name: str | None = None
+    size: int | None = None
+    path: Path | None = None
     people: list[Person] = field(default_factory=list)
-    some_dict: dict[str, Optional[int]] = field(default_factory=dict)
+    some_dict: dict[str, int | None] = field(default_factory=dict)
 
 
 @dataclass
 class Reference(Coqpit):
-    name: Optional[str] = "Coqpit"
-    size: Optional[int] = 3
+    name: str | None = "Coqpit"
+    size: int | None = 3
     path: Path = Path("a/b")
     people: list[Person] = field(
         default_factory=lambda: [
@@ -34,7 +34,7 @@ class Reference(Coqpit):
             Person(name="Ceren", age=15),
         ],
     )
-    some_dict: dict[str, Optional[int]] = field(default_factory=lambda: {"a": 1, "b": 2, "c": None})
+    some_dict: dict[str, int | None] = field(default_factory=lambda: {"a": 1, "b": 2, "c": None})
 
 
 def test_serialization() -> None:

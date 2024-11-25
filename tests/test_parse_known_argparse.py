@@ -1,18 +1,17 @@
 from dataclasses import asdict, dataclass, field
-from typing import Optional
 
 from coqpit.coqpit import Coqpit, check_argument
 
 
 @dataclass
 class SimplerConfig(Coqpit):
-    val_a: Optional[int] = field(default=None, metadata={"help": "this is val_a"})
+    val_a: int | None = field(default=None, metadata={"help": "this is val_a"})
 
 
 @dataclass
 class SimpleConfig(Coqpit):
     val_a: int = field(default=10, metadata={"help": "this is val_a of SimpleConfig"})
-    val_b: Optional[int] = field(default=None, metadata={"help": "this is val_b"})
+    val_b: int | None = field(default=None, metadata={"help": "this is val_b"})
     val_c: str = "Coqpit is great!"
     mylist_with_default: list[SimplerConfig] = field(
         default_factory=lambda: [SimplerConfig(val_a=100), SimplerConfig(val_a=999)],

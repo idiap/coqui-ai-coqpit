@@ -1,6 +1,6 @@
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from coqpit.coqpit import MISSING, Coqpit, check_argument
 
@@ -8,7 +8,7 @@ from coqpit.coqpit import MISSING, Coqpit, check_argument
 @dataclass
 class SimpleConfig(Coqpit):
     val_a: int = 10
-    val_b: Optional[int] = None
+    val_b: int | None = None
     val_d: float = 10.21
     val_c: str = "Coqpit is great!"
     vol_e: bool = True
@@ -19,7 +19,7 @@ class SimpleConfig(Coqpit):
     val_dict: dict[str, Any] = field(default_factory=lambda: {"val_aa": 10, "val_ss": "This is in a dict."})
     # list of list
     val_listoflist: list[list[int]] = field(default_factory=lambda: [[1, 2], [3, 4]])
-    val_listofunion: list[list[Union[str, int, bool]]] = field(
+    val_listofunion: list[list[str | int | bool]] = field(
         default_factory=lambda: [[1, 3], [1, "Hi!"], [True, False]],
     )
 

@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import Optional
 
 import pytest
 
@@ -8,8 +7,8 @@ from coqpit import Coqpit
 
 @dataclass
 class Person(Coqpit):
-    name: Optional[str] = None
-    age: Optional[int] = None
+    name: str | None = None
+    age: int | None = None
 
 
 @dataclass
