@@ -6,23 +6,16 @@ import argparse
 import contextlib
 import json
 import operator
-import sys
 import typing
 from collections.abc import Callable, ItemsView, Iterable, Iterator, MutableMapping
 from dataclasses import MISSING as _MISSING
 from dataclasses import Field, asdict, dataclass, fields, is_dataclass, replace
 from pathlib import Path
 from pprint import pprint
-from types import GenericAlias
+from types import GenericAlias, UnionType
 from typing import TYPE_CHECKING, Any, Generic, Literal, TypeAlias, TypeGuard, TypeVar, Union, overload
 
 from typing_extensions import Self, TypeIs
-
-# TODO: Available from Python 3.10
-if sys.version_info >= (3, 10):
-    from types import UnionType
-else:
-    UnionType: TypeAlias = Union
 
 if TYPE_CHECKING:  # pragma: no cover
     import os
@@ -90,10 +83,7 @@ def _is_union(field_type: FieldType) -> TypeIs[UnionType]:
         bool: True if input type is `Union`
     """
     origin = typing.get_origin(field_type)
-    is_union = origin is Union
-    if sys.version_info >= (3, 10):
-        is_union = is_union or origin is UnionType
-    return is_union
+    return origin is Union or origin is UnionType
 
 
 def _is_union_and_not_simple_optional(field_type: FieldType) -> TypeGuard[UnionType]:
