@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 from coqpit.coqpit import Coqpit
 
@@ -7,7 +6,7 @@ from coqpit.coqpit import Coqpit
 @dataclass
 class CoqpitA(Coqpit):
     val_a: int = 10
-    val_b: Optional[int] = None
+    val_b: int | None = None
     val_c: str = "Coqpit is great!"
     val_same: float = 10.21
 
@@ -23,7 +22,7 @@ class CoqpitB(Coqpit):
 @dataclass
 class Reference(Coqpit):
     val_a: int = 10
-    val_b: Optional[int] = None
+    val_b: int | None = None
     val_c: str = "Coqpit is great!"
     val_e: int = 257
     val_f: float = -10.21

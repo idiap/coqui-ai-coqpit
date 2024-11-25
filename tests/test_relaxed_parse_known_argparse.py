@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass, field
-from typing import Any, Optional, Union
+from typing import Any
 
 from coqpit.coqpit import Coqpit, check_argument
 
@@ -7,9 +7,9 @@ from coqpit.coqpit import Coqpit, check_argument
 @dataclass
 class SimpleConfig(Coqpit):
     val_a: int = field(default=10, metadata={"help": "this is val_a of SimpleConfig"})
-    val_b: Optional[int] = field(default=None, metadata={"help": "this is val_b"})
-    val_c: Optional[Union[int, str]] = None
-    val_d: Optional[list[list[Any]]] = None
+    val_b: int | None = field(default=None, metadata={"help": "this is val_b"})
+    val_c: int | str | None = None
+    val_d: list[list[Any]] | None = None
 
     def check_values(self) -> None:
         """Check config fields"""

@@ -6,23 +6,16 @@ import argparse
 import contextlib
 import json
 import operator
-import sys
 import typing
-from collections.abc import ItemsView, Iterable, Iterator, MutableMapping
+from collections.abc import Callable, ItemsView, Iterable, Iterator, MutableMapping
 from dataclasses import MISSING as _MISSING
 from dataclasses import Field, asdict, dataclass, fields, is_dataclass, replace
 from pathlib import Path
 from pprint import pprint
-from types import GenericAlias
-from typing import TYPE_CHECKING, Any, Callable, Generic, Literal, TypeVar, Union, overload
+from types import GenericAlias, UnionType
+from typing import TYPE_CHECKING, Any, Generic, Literal, TypeAlias, TypeGuard, TypeVar, Union, overload
 
-from typing_extensions import Self, TypeAlias, TypeGuard, TypeIs
-
-# TODO: Available from Python 3.10
-if sys.version_info >= (3, 10):
-    from types import UnionType
-else:
-    UnionType: TypeAlias = Union
+from typing_extensions import Self, TypeIs
 
 if TYPE_CHECKING:  # pragma: no cover
     import os
@@ -38,7 +31,7 @@ class _NoDefault(Generic[_T]):
     pass
 
 
-NoDefaultVar: TypeAlias = Union[_NoDefault[_T], _T]
+NoDefaultVar: TypeAlias = _NoDefault[_T] | _T
 no_default: NoDefaultVar[Any] = _NoDefault()
 
 FieldType: TypeAlias = Union[str, type, "UnionType"]
@@ -90,10 +83,7 @@ def _is_union(field_type: FieldType) -> TypeIs[UnionType]:
         bool: True if input type is `Union`
     """
     origin = typing.get_origin(field_type)
-    is_union = origin is Union
-    if sys.version_info >= (3, 10):
-        is_union = is_union or origin is UnionType
-    return is_union
+    return origin is Union or origin is UnionType
 
 
 def _is_union_and_not_simple_optional(field_type: FieldType) -> TypeGuard[UnionType]:
@@ -262,13 +252,13 @@ def _deserialize_primitive_types(
     Returns:
         Union[int, float, str, bool]: deserialized value.
     """
-    if isinstance(x, (str, bool)):
+    if isinstance(x, str | bool):
         return x
-    if isinstance(x, (int, float)):
+    if isinstance(x, int | float):
         base_type = _drop_none_type(field_type)
         if base_type is not float and base_type is not int and base_type is not str and base_type is not bool:
             raise TypeError
-        base_type = typing.cast(type[Union[int, float, str, bool]], base_type)
+        base_type = typing.cast(type[int | float | str | bool], base_type)
         if x == float("inf") or x == float("-inf"):
             # if value type is inf return regardless.
             return x
@@ -315,7 +305,7 @@ def _deserialize(x: Any, field_type: FieldType) -> Any:
 
 CoqpitType: TypeAlias = MutableMapping[str, "CoqpitNestedValue"]
 CoqpitNestedValue: TypeAlias = Union["CoqpitValue", CoqpitType]
-CoqpitValue: TypeAlias = Union[str, int, float, bool, None]
+CoqpitValue: TypeAlias = str | int | float | bool | None
 
 
 # TODO: It should be possible to get rid of the next 3 `type: ignore`. At
