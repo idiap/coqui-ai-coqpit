@@ -7,6 +7,7 @@ import contextlib
 import json
 import operator
 import typing
+import warnings
 from collections.abc import Callable, ItemsView, Iterable, Iterator, MutableMapping
 from dataclasses import MISSING as _MISSING
 from dataclasses import Field, asdict, dataclass, fields, is_dataclass, replace
@@ -182,6 +183,9 @@ def _deserialize_dict(x: dict[Any, Any]) -> dict[Any, Any]:
     Returns:
         Dict: deserialized dictionary.
     """
+    if not isinstance(x, dict):
+        msg = f"Value `{x}` is not a dictionary"
+        raise TypeError(msg)
     out_dict: dict[Any, Any] = {}
     for k, v in x.items():
         if v is None:  # if {'key':None}
@@ -204,6 +208,9 @@ def _deserialize_list(x: list[Any], field_type: FieldType) -> list[Any]:
     Returns:
         [List]: deserialized list.
     """
+    if not isinstance(x, list):
+        msg = f"Value `{x}` does not match field type `{field_type}`"
+        raise TypeError(msg)
     field_args = typing.get_args(field_type)
     if len(field_args) == 0:
         return x
@@ -232,7 +239,7 @@ def _deserialize_union(x: Any, field_type: UnionType) -> Any:
         try:
             x = _deserialize(x, arg)
             break
-        except ValueError:
+        except (TypeError, ValueError):
             pass
     return x
 
@@ -252,18 +259,30 @@ def _deserialize_primitive_types(
     Returns:
         Union[int, float, str, bool]: deserialized value.
     """
-    if isinstance(x, str | bool):
+    base_type = _drop_none_type(field_type)
+    if base_type is not float and base_type is not int and base_type is not str and base_type is not bool:
+        raise TypeError
+    base_type = typing.cast(type[int | float | str | bool], base_type)
+
+    type_mismatch = f"Value `{x}` does not match field type `{field_type}`"
+    if x is None and type(None) in typing.get_args(field_type):
+        return None
+    if isinstance(x, str):
+        if base_type is not str:
+            raise TypeError(type_mismatch)
+        return x
+    if isinstance(x, bool):
+        if base_type is not bool:
+            raise TypeError(type_mismatch)
         return x
     if isinstance(x, int | float):
-        base_type = _drop_none_type(field_type)
-        if base_type is not float and base_type is not int and base_type is not str and base_type is not bool:
-            raise TypeError
-        base_type = typing.cast(type[int | float | str | bool], base_type)
         if x == float("inf") or x == float("-inf"):
             # if value type is inf return regardless.
             return x
+        if base_type is not int and base_type is not float:
+            raise TypeError(type_mismatch)
         return base_type(x)
-    return None
+    raise TypeError(type_mismatch)
 
 
 def _deserialize_path(x: Any, field_type: FieldType) -> Path | None:
@@ -299,8 +318,8 @@ def _deserialize(x: Any, field_type: FieldType) -> Any:
         return _deserialize_path(x, field_type)
     if _is_primitive_type(_drop_none_type(field_type)):
         return _deserialize_primitive_types(x, field_type)
-    msg = f" [!] '{type(x)}' value type of '{x}' does not match '{field_type}' field type."
-    raise ValueError(msg)
+    msg = f"Type '{type(x)}' of value '{x}' does not match declared '{field_type}' field type."
+    raise TypeError(msg)
 
 
 CoqpitType: TypeAlias = MutableMapping[str, "CoqpitNestedValue"]
@@ -433,7 +452,18 @@ class Serializable:
             if value == MISSING:
                 msg = f"deserialized with unknown value for {field.name} in {self.__class__.__name__}"
                 raise ValueError(msg)
-            value = _deserialize(value, field.type)
+            try:
+                value = _deserialize(value, field.type)
+            except TypeError:
+                warnings.warn(
+                    (
+                        f"Type mismatch in {type(self).__name__}\n"
+                        f"Failed to deserialize field: {field.name} ({field.type}) = {value}\n"
+                        f"Replaced it with field's default value: {_default_value(field)}"
+                    ),
+                    stacklevel=2,
+                )
+                value = _default_value(field)
             init_kwargs[field.name] = value
         for k, v in init_kwargs.items():
             setattr(self, k, v)

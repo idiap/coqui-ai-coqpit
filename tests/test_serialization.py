@@ -1,9 +1,11 @@
 from dataclasses import dataclass, field
 from pathlib import Path
+from types import UnionType
+from typing import Any
 
 import pytest
 
-from coqpit.coqpit import Coqpit, _deserialize_list, _deserialize_primitive_types
+from coqpit.coqpit import Coqpit, FieldType, _deserialize_list, _deserialize_primitive_types, _deserialize_union
 
 
 @dataclass
@@ -62,24 +64,44 @@ def test_serialization() -> None:
     assert ref_config.some_dict["c"] == new_config.some_dict["c"]
 
 
+def test_serialization_type_mismatch() -> None:
+    file_path = Path(__file__).resolve().parent / "test_serialization.json"
+
+    ref_config = Reference()
+    ref_config.size = True
+    ref_config.save_json(file_path)
+
+    new_config = Group()
+    with pytest.warns(UserWarning, match="Type mismatch"):
+        new_config.load_json(file_path)
+    new_config.pprint()
+
+    # check values
+    assert len(ref_config) == len(new_config)
+    assert new_config.size is None
+
+
 def test_deserialize_list() -> None:
     assert _deserialize_list([1, 2, 3], list) == [1, 2, 3]
     assert _deserialize_list([1, 2, 3], list[int]) == [1, 2, 3]
+    assert _deserialize_list([[1, 2, 3]], list[list[int]]) == [[1, 2, 3]]
+    assert _deserialize_list([1.0, 2.0, 3.0], list[float]) == [1.0, 2.0, 3.0]
     assert _deserialize_list([1, 2, 3], list[float]) == [1.0, 2.0, 3.0]
-    assert _deserialize_list([1, 2, 3], list[str]) == ["1", "2", "3"]
+    assert _deserialize_list(["1", "2", "3"], list[str]) == ["1", "2", "3"]
+
+    with pytest.raises(TypeError, match="does not match field type"):
+        _deserialize_list([1, 2, 3], list[list[int]])
 
 
-def test_deserialize_primitive_type() -> None:
-    cases = (
+@pytest.mark.parametrize(
+    ("value", "field_type", "expected"),
+    [
         (True, bool, True),
         (False, bool, False),
         ("a", str, "a"),
         ("3", str, "3"),
         (3, int, 3),
         (3, float, 3.0),
-        (3, str, "3"),
-        (3.0, str, "3.0"),
-        (3, bool, True),
         ("a", str | None, "a"),
         ("3", str | None, "3"),
         (3, int | None, 3),
@@ -87,14 +109,61 @@ def test_deserialize_primitive_type() -> None:
         (None, str | None, None),
         (None, int | None, None),
         (None, float | None, None),
-        (None, str | None, None),
+        (None, bool | None, None),
         (float("inf"), float, float("inf")),
         (float("inf"), int, float("inf")),
         (float("-inf"), float, float("-inf")),
         (float("-inf"), int, float("-inf")),
-    )
-    for value, field_type, expected in cases:
-        assert _deserialize_primitive_types(value, field_type) == expected
+    ],
+)
+def test_deserialize_primitive_type(
+    value: str | bool | float | None,
+    field_type: FieldType,
+    expected: str | bool | float | None,
+) -> None:
+    assert _deserialize_primitive_types(value, field_type) == expected
 
-    with pytest.raises(TypeError):
-        _deserialize_primitive_types(3, Coqpit)
+
+@pytest.mark.parametrize(
+    ("value", "field_type"),
+    [
+        (3, str),
+        (3, str | None),
+        (3.0, str),
+        (3, bool),
+        ("1", int),
+        ("2.0", float),
+        ("True", bool),
+        ("True", bool | None),
+        ("", bool | None),
+        ([1, 2], str),
+        ([1, 2, 3], int),
+    ],
+)
+def test_deserialize_primitive_type_mismatch(
+    value: str | bool | float | None,
+    field_type: FieldType,
+) -> None:
+    with pytest.raises(TypeError, match="does not match field type"):
+        _deserialize_primitive_types(value, field_type)
+
+
+@pytest.mark.parametrize(
+    ("value", "field_type", "expected"),
+    [
+        ("a", int | str, "a"),
+        ("a", str | int, "a"),
+        (1, int | str, 1),
+        (1, str | int, 1),
+        (1, str | int | list[int], 1),
+        ([1, 2], str | int | list[int], [1, 2]),
+        ([1, 2], list[int] | int | str, [1, 2]),
+        ([1, 2], dict | list, [1, 2]),
+        (["a", "b"], list[str] | list[list[str]], ["a", "b"]),
+        (["a", "b"], list[list[str]] | list[str], ["a", "b"]),
+        ([["a", "b"]], list[str] | list[list[str]], [["a", "b"]]),
+        ([["a", "b"]], list[list[str]] | list[str], [["a", "b"]]),
+    ],
+)
+def test_deserialize_union(value: Any, field_type: UnionType, expected: Any) -> None:
+    assert _deserialize_union(value, field_type) == expected
