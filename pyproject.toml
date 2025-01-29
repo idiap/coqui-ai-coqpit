@@ -35,15 +35,18 @@ dependencies = [
 [dependency-groups]
 dev = [
     "coverage>=7",
-    "mypy>=1.13.0",
+    "mypy>=1.14.1",
     "pre-commit>=4",
     "pytest>=8",
-    "ruff==0.8.3",
+    "ruff==0.9.3",
 ]
 
 [project.urls]
 Repository = "https://github.com/idiap/coqui-ai-coqpit"
 Issues = "https://github.com/idiap/coqui-ai-coqpit/issues"
+
+[tool.uv]
+required-version = ">=0.5.0"
 
 [tool.hatch.build]
 exclude = [
