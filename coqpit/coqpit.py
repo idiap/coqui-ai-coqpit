@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import functools
 import json
 import operator
 import typing
@@ -13,7 +14,7 @@ from dataclasses import MISSING as _MISSING
 from dataclasses import Field, asdict, dataclass, fields, is_dataclass, replace
 from pathlib import Path
 from pprint import pprint
-from types import GenericAlias, UnionType
+from types import UnionType
 from typing import TYPE_CHECKING, Any, Generic, Literal, TypeAlias, TypeGuard, TypeVar, Union, overload
 
 from typing_extensions import Self, TypeIs
@@ -60,6 +61,27 @@ def _is_list(field_type: FieldType) -> TypeGuard[type]:
         bool: True if input type is `list`
     """
     return field_type is list or typing.get_origin(field_type) is list
+
+
+def _parse_list_union(field_type: FieldType) -> type | None:
+    """Check if the input type matches `_T | list[_T]`.
+
+    Args:
+        field_type: input type.
+
+    Returns:
+        bool: _T, if input type matches `_T | list[_T]`, else None
+    """
+    if not _is_union(field_type):
+        return None
+
+    def _get_base_type(field_type: type) -> type:
+        return typing.get_args(field_type)[0] if _is_list(field_type) else field_type
+
+    args = typing.get_args(field_type)
+    is_list = [_is_list(arg) for arg in args]
+    base_types = [_get_base_type(arg) for arg in args]
+    return base_types[0] if len(args) == 2 and sum(is_list) == 1 and base_types[0] == base_types[1] else None  # noqa: PLR2004
 
 
 def _is_dict(field_type: FieldType) -> TypeGuard[type]:
@@ -143,13 +165,12 @@ def _drop_none_type(field_type: FieldType) -> FieldType:
     """
     if not _is_union(field_type):
         return field_type
-    origin = typing.get_origin(field_type)
     args = list(typing.get_args(field_type))
     if type(None) in args:
         args.remove(type(None))
     if len(args) == 1:
         return typing.cast(type, args[0])
-    return typing.cast("UnionType", GenericAlias(origin, args))
+    return typing.cast(UnionType, functools.reduce(lambda a, b: a | b, args))
 
 
 def _serialize(x: Any) -> Any:
@@ -546,6 +567,7 @@ def _add_argument(  # noqa: C901, PLR0913, PLR0912, PLR0915
         not has_default
         and not _is_primitive_type(_drop_none_type(field_type))
         and not _is_list(_drop_none_type(field_type))
+        and _parse_list_union(_drop_none_type(field_type)) is None
     ):
         # aggregate types (fields with a Coqpit subclass as type) are not
         # supported without None
@@ -561,7 +583,6 @@ def _add_argument(  # noqa: C901, PLR0913, PLR0912, PLR0915
             type=json.loads,
         )
     elif _is_list(_drop_none_type(field_type)):
-        # TODO: We need a more clear help msg for lists.
         field_args = typing.get_args(_drop_none_type(field_type))
         if len(field_args) > 1 and not relaxed_parser:
             msg = "Coqpit does not support multi-type hinted 'List'"
@@ -601,7 +622,43 @@ def _add_argument(  # noqa: C901, PLR0913, PLR0912, PLR0915
                     fv,
                     field_default_factory,
                     field_help="",
-                    help_prefix=f"{help_prefix} - ",
+                    help_prefix=f"{help_prefix} (item {idx})",
+                    arg_prefix=f"{arg_prefix}",
+                    relaxed_parser=relaxed_parser,
+                )
+    # Fields matching: _T | list[_T] ( | None)
+    elif (list_field_type := _parse_list_union(_drop_none_type(field_type))) is not None:
+        if not has_default or field_default_factory is list:
+            if not _is_primitive_type(list_field_type) and not relaxed_parser:
+                msg = " [!] Empty list with non primitive inner type is currently not supported."
+                raise NotImplementedError(msg)
+
+            # If the list's default value is None, the user can specify the entire list by passing multiple parameters
+            parser.add_argument(
+                f"--{arg_prefix}",
+                nargs="*",
+                type=list_field_type,
+                help=f"Coqpit Field: {help_prefix}",
+            )
+        # If a default value is defined, just enable editing the values from argparse
+        # TODO: allow inserting a new value/obj to the end of the list.
+        elif not isinstance(default, list):
+            parser.add_argument(
+                f"--{arg_prefix}",
+                default=default,
+                type=list_field_type,
+                help=f"Coqpit Field: {help_prefix}",
+            )
+        else:
+            for idx, fv in enumerate(default):
+                parser = _add_argument(
+                    parser,
+                    str(idx),
+                    list_field_type,
+                    fv,
+                    field_default_factory,
+                    field_help="",
+                    help_prefix=f"{help_prefix} (item {idx})",
                     arg_prefix=f"{arg_prefix}",
                     relaxed_parser=relaxed_parser,
                 )

@@ -74,6 +74,7 @@ convention = "google"
 "tests/**" = [
     "D",
     "FA100",
+    "FBT001",
     "PLR2004",
     "S101",
     "SLF001",

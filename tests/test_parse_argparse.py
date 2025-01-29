@@ -18,7 +18,7 @@ class SimpleConfig(Coqpit):
         default_factory=lambda: [SimplerConfig(val_a=100), SimplerConfig(val_a=999)],
         metadata={"help": "list of SimplerConfig"},
     )
-    int_list: list[int] = field(default_factory=lambda: [1, 2, 3], metadata={"help": "int"})
+    int_list: list[int] = field(default_factory=lambda: [1, 2, 3], metadata={"help": "int list"})
     str_list: list[str] = field(default_factory=lambda: ["veni", "vidi", "vici"], metadata={"help": "str"})
     empty_int_list: list[int] | None = field(default=None, metadata={"help": "int list without default value"})
     empty_str_list: list[str] | None = field(default=None, metadata={"help": "str list without default value"})
@@ -26,6 +26,10 @@ class SimpleConfig(Coqpit):
         default_factory=list,
         metadata={"help": "str list with default factory"},
     )
+    int_or_list: int | list[int] = field(default_factory=lambda: [1, 2, 3])
+    float_or_list: float | list[float] = field(default=0.1)
+    str_or_list: str | list[str] | None = field(default=None)
+    bool_or_list: bool | list[bool] | None = field(default=None)
 
     # TODO: not supported yet
     # mylist_without_default: List[SimplerConfig] = field(default=None)  noqa: ERA001
@@ -51,6 +55,10 @@ def test_parse_argparse() -> None:
     args.extend(["--coqpit.list_with_default_factory", "blah"])
     args.extend(["--coqpit.str_list.0", "neci"])
     args.extend(["--coqpit.int_list.1", "4"])
+    args.extend(["--coqpit.int_or_list.0", "5"])
+    args.extend(["--coqpit.float_or_list", "3.4"])
+    args.extend(["--coqpit.str_or_list", "a", "b"])
+    args.extend(["--coqpit.bool_or_list", "true"])
 
     # initial config
     config = SimpleConfig()
@@ -68,6 +76,10 @@ def test_parse_argparse() -> None:
         str_list=["neci", "vidi", "vici"],
         int_list=[1, 4, 3],
         list_with_default_factory=["blah"],
+        int_or_list=[5, 2, 3],
+        float_or_list=3.4,
+        str_or_list=["a", "b"],
+        bool_or_list=[True],
     )
 
     # create and init argparser with Coqpit
