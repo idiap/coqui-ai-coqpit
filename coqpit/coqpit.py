@@ -596,7 +596,7 @@ def _add_argument(  # noqa: C901, PLR0913, PLR0912, PLR0915
         if _is_list(list_field_type) and relaxed_parser:
             return parser
 
-        if not has_default or field_default_factory is list:
+        if not has_default or default == []:
             if not _is_primitive_type(list_field_type) and not relaxed_parser:
                 msg = " [!] Empty list with non primitive inner type is currently not supported."
                 raise NotImplementedError(msg)
@@ -605,6 +605,7 @@ def _add_argument(  # noqa: C901, PLR0913, PLR0912, PLR0915
             parser.add_argument(
                 f"--{arg_prefix}",
                 nargs="*",
+                default=default,
                 type=list_field_type,
                 help=f"Coqpit Field: {help_prefix}",
             )
@@ -628,7 +629,7 @@ def _add_argument(  # noqa: C901, PLR0913, PLR0912, PLR0915
                 )
     # Fields matching: _T | list[_T] ( | None)
     elif (list_field_type := _parse_list_union(_drop_none_type(field_type))) is not None:
-        if not has_default or field_default_factory is list:
+        if not has_default or default == []:
             if not _is_primitive_type(list_field_type) and not relaxed_parser:
                 msg = " [!] Empty list with non primitive inner type is currently not supported."
                 raise NotImplementedError(msg)
@@ -637,6 +638,7 @@ def _add_argument(  # noqa: C901, PLR0913, PLR0912, PLR0915
             parser.add_argument(
                 f"--{arg_prefix}",
                 nargs="*",
+                default=default,
                 type=list_field_type,
                 help=f"Coqpit Field: {help_prefix}",
             )
