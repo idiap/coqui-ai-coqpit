@@ -12,6 +12,6 @@ lint:	## run ruff format and lint
 
 install:	## install 👩‍✈️ Coqpit for development.
 	uv sync --all-extras
-	uv runpre-commit install
+	uv run pre-commit install
 
 testlint: test lint
