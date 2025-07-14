@@ -17,6 +17,8 @@ class SimpleConfig(Coqpit):
         default_factory=lambda: [SimplerConfig(val_a=100), SimplerConfig(val_a=999)],
         metadata={"help": "list of SimplerConfig"},
     )
+    int_list_empty_default: list[int] = field(default_factory=list)
+    str_or_list_empty_default: str | list[str] | None = field(default_factory=list)
 
     def check_values(self) -> None:
         """Check config fields"""
@@ -37,7 +39,7 @@ def test_parse_argparse() -> None:
     args.extend(unknown_args)
 
     # initial config
-    config = SimpleConfig()
+    config = SimpleConfig(int_list_empty_default=[55, 77], str_or_list_empty_default="a")
     config.pprint()
 
     # reference config that we like to match with the config above
@@ -46,6 +48,8 @@ def test_parse_argparse() -> None:
         val_b=999,
         val_c="this is different",
         mylist_with_default=[SimplerConfig(val_a=222), SimplerConfig(val_a=111)],
+        int_list_empty_default=[55, 77],
+        str_or_list_empty_default="a",
     )
 
     # create and init argparser with Coqpit

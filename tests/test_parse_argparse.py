@@ -18,6 +18,7 @@ class SimpleConfig(Coqpit):
         default_factory=lambda: [SimplerConfig(val_a=100), SimplerConfig(val_a=999)],
         metadata={"help": "list of SimplerConfig"},
     )
+    int_list_empty_default: list[int] = field(default_factory=list)
     int_list: list[int] = field(default_factory=lambda: [1, 2, 3], metadata={"help": "int list"})
     str_list: list[str] = field(default_factory=lambda: ["veni", "vidi", "vici"], metadata={"help": "str"})
     empty_int_list: list[int] | None = field(default=None, metadata={"help": "int list without default value"})
@@ -29,6 +30,7 @@ class SimpleConfig(Coqpit):
     int_or_list: int | list[int] = field(default_factory=lambda: [1, 2, 3])
     float_or_list: float | list[float] = field(default=0.1)
     str_or_list: str | list[str] | None = field(default=None)
+    str_or_list_empty_default: str | list[str] | None = field(default_factory=list)
     bool_or_list: bool | list[bool] | None = field(default=None)
 
     # TODO: not supported yet
@@ -61,7 +63,7 @@ def test_parse_argparse() -> None:
     args.extend(["--coqpit.bool_or_list", "true"])
 
     # initial config
-    config = SimpleConfig()
+    config = SimpleConfig(int_list_empty_default=[55, 77], str_or_list_empty_default="a")
     config.pprint()
 
     # reference config that we like to match with the config above
@@ -71,6 +73,7 @@ def test_parse_argparse() -> None:
         val_c="this is different",
         val_dict={"val_a": 10, "val_b": 20},
         mylist_with_default=[SimplerConfig(val_a=222), SimplerConfig(val_a=111)],
+        int_list_empty_default=[55, 77],
         empty_int_list=[111, 222, 333],
         empty_str_list=["[foo=bar]", "[baz=qux]", "[blah,p=0.5,r=1~3]"],
         str_list=["neci", "vidi", "vici"],
@@ -79,6 +82,7 @@ def test_parse_argparse() -> None:
         int_or_list=[5, 2, 3],
         float_or_list=3.4,
         str_or_list=["a", "b"],
+        str_or_list_empty_default="a",
         bool_or_list=[True],
     )
 
