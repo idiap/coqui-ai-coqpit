@@ -169,8 +169,8 @@ def _drop_none_type(field_type: FieldType) -> FieldType:
     if type(None) in args:
         args.remove(type(None))
     if len(args) == 1:
-        return typing.cast(type, args[0])
-    return typing.cast(UnionType, functools.reduce(lambda a, b: a | b, args))
+        return typing.cast("type", args[0])
+    return typing.cast("UnionType", functools.reduce(lambda a, b: a | b, args))
 
 
 def _serialize(x: Any) -> Any:
@@ -266,7 +266,7 @@ def _deserialize_union(x: Any, field_type: UnionType) -> Any:
 
 
 def _deserialize_primitive_types(
-    x: int | float | str | bool | None,  # noqa: PYI041
+    x: int | float | str | bool | None,  # noqa: PYI041, FBT001
     field_type: FieldType,
 ) -> int | float | str | bool | None:
     """Deserialize python primitive types (float, int, str, bool).
@@ -283,7 +283,7 @@ def _deserialize_primitive_types(
     base_type = _drop_none_type(field_type)
     if base_type is not float and base_type is not int and base_type is not str and base_type is not bool:
         raise TypeError
-    base_type = typing.cast(type[int | float | str | bool], base_type)
+    base_type = typing.cast("type[int | float | str | bool]", base_type)
 
     type_mismatch = f"Value `{x}` does not match field type `{field_type}`"
     if x is None and type(None) in typing.get_args(field_type):
