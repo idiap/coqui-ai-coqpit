@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "coqpit-config"
-version = "0.2.1"
+version = "0.2.2"
 description = "Simple (maybe too simple), light-weight config management through python data-classes."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -22,6 +22,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Operating System :: POSIX :: Linux",
@@ -35,10 +36,10 @@ dependencies = [
 [dependency-groups]
 dev = [
     "coverage>=7",
-    "mypy>=1.14.1",
+    "mypy==1.18.2",
     "pre-commit>=4",
     "pytest>=8",
-    "ruff==0.9.3",
+    "ruff==0.13.2",
 ]
 
 [project.urls]

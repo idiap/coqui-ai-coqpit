@@ -169,8 +169,8 @@ def _drop_none_type(field_type: FieldType) -> FieldType:
     if type(None) in args:
         args.remove(type(None))
     if len(args) == 1:
-        return typing.cast(type, args[0])
-    return typing.cast(UnionType, functools.reduce(lambda a, b: a | b, args))
+        return typing.cast("type", args[0])
+    return typing.cast("UnionType", functools.reduce(lambda a, b: a | b, args))
 
 
 def _serialize(x: Any) -> Any:
@@ -266,7 +266,7 @@ def _deserialize_union(x: Any, field_type: UnionType) -> Any:
 
 
 def _deserialize_primitive_types(
-    x: int | float | str | bool | None,  # noqa: PYI041
+    x: int | float | str | bool | None,  # noqa: PYI041, FBT001
     field_type: FieldType,
 ) -> int | float | str | bool | None:
     """Deserialize python primitive types (float, int, str, bool).
@@ -283,7 +283,7 @@ def _deserialize_primitive_types(
     base_type = _drop_none_type(field_type)
     if base_type is not float and base_type is not int and base_type is not str and base_type is not bool:
         raise TypeError
-    base_type = typing.cast(type[int | float | str | bool], base_type)
+    base_type = typing.cast("type[int | float | str | bool]", base_type)
 
     type_mismatch = f"Value `{x}` does not match field type `{field_type}`"
     if x is None and type(None) in typing.get_args(field_type):
@@ -791,28 +791,6 @@ class Coqpit(Serializable, CoqpitType):
     def items(self) -> ItemsView[str, Any]:
         """Return (key, value) items of the Coqpit."""
         return asdict(self).items()
-
-    def merge(self, coqpits: Coqpit | list[Coqpit]) -> None:
-        """Merge a coqpit instance or a list of coqpit instances to self.
-
-        Note that it does not pass the fields and overrides attributes with
-        the last Coqpit instance in the given List.
-        TODO: find a way to merge instances with all the class internals.
-
-        Args:
-            coqpits (Union[Coqpit, List[Coqpit]]): coqpit instance or list of instances to be merged.
-        """
-
-        def _merge(coqpit: Coqpit) -> None:
-            self.__dict__.update(coqpit.__dict__)
-            self.__annotations__.update(coqpit.__annotations__)
-            self.__dataclass_fields__.update(coqpit.__dataclass_fields__)
-
-        if isinstance(coqpits, list):
-            for coqpit in coqpits:
-                _merge(coqpit)
-        else:
-            _merge(coqpits)
 
     def check_values(self) -> None:
         """Perform data validation after initialization.
