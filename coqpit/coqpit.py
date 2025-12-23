@@ -51,6 +51,11 @@ def _is_primitive_type(field_type: FieldType) -> TypeGuard[type]:
     return field_type is int or field_type is float or field_type is str or field_type is bool
 
 
+def _is_literal_type(field_type: FieldType) -> TypeGuard[type]:
+    """Check if the input type is a typing.Literal type."""
+    return typing.get_origin(field_type) is Literal
+
+
 def _is_list(field_type: FieldType) -> TypeGuard[type]:
     """Check if the input type is `list`.
 
@@ -306,6 +311,15 @@ def _deserialize_primitive_types(
     raise TypeError(type_mismatch)
 
 
+def _deserialize_literal(x: Any, field_type: FieldType) -> Any:
+    """Deserialize a typing.Literal field."""
+    for value in typing.get_args(field_type):
+        if x == value:
+            return x
+    msg = f"Value `{x}` not valid for Literal field type `{field_type}`"
+    raise TypeError(msg)
+
+
 def _deserialize_path(x: Any, field_type: FieldType) -> Path | None:
     """Deserialize to a Path."""
     if x is None and _is_optional_field(field_type):
@@ -313,7 +327,7 @@ def _deserialize_path(x: Any, field_type: FieldType) -> Path | None:
     return Path(x)
 
 
-def _deserialize(x: Any, field_type: FieldType) -> Any:
+def _deserialize(x: Any, field_type: FieldType) -> Any:  # noqa: PLR0911
     """Pick the right deserialization for the given object and the corresponding field type.
 
     Args:
@@ -339,6 +353,8 @@ def _deserialize(x: Any, field_type: FieldType) -> Any:
         return _deserialize_path(x, field_type)
     if _is_primitive_type(_drop_none_type(field_type)):
         return _deserialize_primitive_types(x, field_type)
+    if _is_literal_type(field_type):
+        return _deserialize_literal(x, field_type)
     msg = f"Type '{type(x)}' of value '{x}' does not match declared '{field_type}' field type."
     raise TypeError(msg)
 
