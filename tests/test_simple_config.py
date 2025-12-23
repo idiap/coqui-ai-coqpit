@@ -1,6 +1,6 @@
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from coqpit.coqpit import MISSING, Coqpit, check_argument
 
@@ -11,7 +11,8 @@ class SimpleConfig(Coqpit):
     val_b: int | None = None
     val_d: float = 10.21
     val_c: str = "Coqpit is great!"
-    vol_e: bool = True
+    val_e: bool = True
+    val_f: Literal["A", "B"] = "B"
     # mandatory field
     # raise an error when accessing the value if it is not changed. It is a way to define
     val_k: int = MISSING
