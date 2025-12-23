@@ -475,11 +475,12 @@ class Serializable:
                 raise ValueError(msg)
             try:
                 value = _deserialize(value, field.type)
-            except TypeError:
+            except TypeError as e:
                 warnings.warn(
                     (
                         f"Type mismatch in {type(self).__name__}\n"
                         f"Failed to deserialize field: {field.name} ({field.type}) = {value}\n"
+                        f"{e}\n"
                         f"Replaced it with field's default value: {_default_value(field)}"
                     ),
                     stacklevel=2,
