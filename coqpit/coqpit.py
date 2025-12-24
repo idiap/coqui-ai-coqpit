@@ -346,7 +346,7 @@ def _deserialize(x: Any, field_type: FieldType) -> Any:  # noqa: PLR0911
     if _is_list(_drop_none_type(field_type)):
         return _deserialize_list(x, _drop_none_type(field_type))
     if _is_union_and_not_simple_optional(field_type):
-        return _deserialize_union(x, field_type)
+        return _deserialize_union(x, field_type)  # ty: ignore[invalid-argument-type]
     if not _is_union(field_type) and isinstance(field_type, type) and issubclass(field_type, Serializable):
         return field_type.deserialize_immutable(x)
     if _drop_none_type(field_type) is Path:
@@ -914,7 +914,7 @@ class Coqpit(Serializable, CoqpitType):
             # If args was not specified, parse from sys.argv
             parser = cls.init_argparse(arg_prefix=arg_prefix)
             args = parser.parse_args()
-        if isinstance(args, list):
+        if not isinstance(args, argparse.Namespace):
             # If a list was passed in (eg. the second result of
             # `parse_known_args`, run that through argparse first to get a
             # parsed Namespace
@@ -967,7 +967,7 @@ class Coqpit(Serializable, CoqpitType):
             # If args was not specified, parse from sys.argv
             parser = self.init_argparse(instance=self, arg_prefix=arg_prefix)
             args = parser.parse_args()
-        if isinstance(args, list):
+        if not isinstance(args, argparse.Namespace):
             # If a list was passed in (eg. the second result of
             # `parse_known_args`, run that through argparse first
             # to get a parsed Namespace
@@ -1016,7 +1016,7 @@ class Coqpit(Serializable, CoqpitType):
             # If args was not specified, parse from sys.argv
             parser = self.init_argparse(instance=self, arg_prefix=arg_prefix, relaxed_parser=relaxed_parser)
             args, unknown = parser.parse_known_args()
-        if isinstance(args, list):
+        if not isinstance(args, argparse.Namespace):
             # If a list was passed in (eg. the second result of
             # `parse_known_args`, run that through argparse first to get a
             # parsed Namespace
