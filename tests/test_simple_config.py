@@ -34,8 +34,8 @@ class SimpleConfig(Coqpit):
         check_argument("val_c", c, restricted=True)
 
 
-def test_simple_config() -> None:
-    file_path = Path(__file__).resolve().parent / "example_config.json"
+def test_simple_config(tmp_path: Path) -> None:
+    file_path = tmp_path / "example_config.json"
     config = SimpleConfig()
 
     assert config._is_initialized()

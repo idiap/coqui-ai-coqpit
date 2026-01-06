@@ -45,8 +45,8 @@ class Reference(Coqpit):
     some_dict: dict[str, int | None] = field(default_factory=lambda: {"a": 1, "b": 2, "c": None})
 
 
-def test_serialization() -> None:
-    file_path = Path(__file__).resolve().parent / "test_serialization.json"
+def test_serialization(tmp_path: Path) -> None:
+    file_path = tmp_path / "test_serialization.json"
 
     ref_config = Reference()
     ref_config.save_json(file_path)
@@ -71,8 +71,8 @@ def test_serialization() -> None:
     assert ref_config.some_dict["c"] == new_config.some_dict["c"]
 
 
-def test_serialization_type_mismatch() -> None:
-    file_path = Path(__file__).resolve().parent / "test_serialization.json"
+def test_serialization_type_mismatch(tmp_path: Path) -> None:
+    file_path = tmp_path / "test_serialization.json"
 
     ref_config = Reference()
     ref_config.size = True
