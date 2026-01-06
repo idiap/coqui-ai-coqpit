@@ -802,7 +802,7 @@ class Coqpit(Serializable, CoqpitType):
     def get(self, key: str, default: Any = None) -> Any:
         """Return value of the given attribute if present, otherwise the default."""
         if self.has(key):
-            return asdict(self)[key]
+            return self[key]
         return default
 
     def items(self) -> ItemsView[str, Any]:
@@ -817,7 +817,7 @@ class Coqpit(Serializable, CoqpitType):
 
     def has(self, arg: str) -> bool:
         """Check whether the Coqpit has the given attribute."""
-        return arg in vars(self)
+        return any(field.name == arg for field in fields(self))
 
     def copy(self) -> Self:
         """Return a copy of the Coqpit."""

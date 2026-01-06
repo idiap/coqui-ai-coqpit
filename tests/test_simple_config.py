@@ -49,6 +49,13 @@ def test_simple_config(tmp_path: Path) -> None:
 
     assert "val_a" in config
     assert config.has("val_a")
+    assert config.get("val_a", -1) == 10
+
+    # setting non-field attributes
+    config.non_member = 5  # type: ignore[attr-defined]
+    assert "non_member" not in config
+    assert not config.has("non_member")
+    assert config.get("non_member", -1) == -1
 
     # try serialization and deserialization
     print(config.serialize())
