@@ -1,11 +1,18 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import UnionType
-from typing import Any
+from typing import Any, Literal
 
 import pytest
 
-from coqpit.coqpit import Coqpit, FieldType, _deserialize_list, _deserialize_primitive_types, _deserialize_union
+from coqpit.coqpit import (
+    Coqpit,
+    FieldType,
+    _deserialize_list,
+    _deserialize_literal,
+    _deserialize_primitive_types,
+    _deserialize_union,
+)
 
 
 @dataclass
@@ -38,8 +45,8 @@ class Reference(Coqpit):
     some_dict: dict[str, int | None] = field(default_factory=lambda: {"a": 1, "b": 2, "c": None})
 
 
-def test_serialization() -> None:
-    file_path = Path(__file__).resolve().parent / "test_serialization.json"
+def test_serialization(tmp_path: Path) -> None:
+    file_path = tmp_path / "test_serialization.json"
 
     ref_config = Reference()
     ref_config.save_json(file_path)
@@ -64,8 +71,8 @@ def test_serialization() -> None:
     assert ref_config.some_dict["c"] == new_config.some_dict["c"]
 
 
-def test_serialization_type_mismatch() -> None:
-    file_path = Path(__file__).resolve().parent / "test_serialization.json"
+def test_serialization_type_mismatch(tmp_path: Path) -> None:
+    file_path = tmp_path / "test_serialization.json"
 
     ref_config = Reference()
     ref_config.size = True
@@ -167,3 +174,42 @@ def test_deserialize_primitive_type_mismatch(
 )
 def test_deserialize_union(value: Any, field_type: UnionType, expected: Any) -> None:
     assert _deserialize_union(value, field_type) == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "field_type", "expected"),
+    [
+        ("a", Literal["a", "b", "c"], "a"),
+        ("b", Literal["a", "b", "c"], "b"),
+        ("c", Literal["a", "b", "c"], "c"),
+        (1, Literal[1, 2, 3], 1),
+        (2, Literal[1, 2, 3], 2),
+        (3, Literal[1, 2, 3], 3),
+        (True, Literal[True, False], True),
+        (False, Literal[True, False], False),
+        ("a", Literal["a", 1, True], "a"),
+        (1, Literal["a", 1, True], 1),
+        (True, Literal["a", 1, True], True),
+    ],
+)
+def test_deserialize_literal(value: Any, field_type: FieldType, expected: Any) -> None:
+    assert _deserialize_literal(value, field_type) == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "field_type"),
+    [
+        ("d", Literal["a", "b", "c"]),
+        ("x", Literal["a", "b", "c"]),
+        (4, Literal[1, 2, 3]),
+        (0, Literal[1, 2, 3]),
+        ("a", Literal[1, 2, 3]),
+        (1, Literal["a", "b", "c"]),
+        (None, Literal["a", "b", "c"]),
+        (False, Literal["a", 1]),
+        (2, Literal["a", 1, True]),
+    ],
+)
+def test_deserialize_literal_mismatch(value: Any, field_type: FieldType) -> None:
+    with pytest.raises(TypeError, match="not valid for Literal field type"):
+        _deserialize_literal(value, field_type)

@@ -1,6 +1,6 @@
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from coqpit.coqpit import MISSING, Coqpit, check_argument
 
@@ -11,7 +11,8 @@ class SimpleConfig(Coqpit):
     val_b: int | None = None
     val_d: float = 10.21
     val_c: str = "Coqpit is great!"
-    vol_e: bool = True
+    val_e: bool = True
+    val_f: Literal["A", "B"] = "B"
     # mandatory field
     # raise an error when accessing the value if it is not changed. It is a way to define
     val_k: int = MISSING
@@ -33,8 +34,8 @@ class SimpleConfig(Coqpit):
         check_argument("val_c", c, restricted=True)
 
 
-def test_simple_config() -> None:
-    file_path = Path(__file__).resolve().parent / "example_config.json"
+def test_simple_config(tmp_path: Path) -> None:
+    file_path = tmp_path / "example_config.json"
     config = SimpleConfig()
 
     assert config._is_initialized()
@@ -48,6 +49,13 @@ def test_simple_config() -> None:
 
     assert "val_a" in config
     assert config.has("val_a")
+    assert config.get("val_a", -1) == 10
+
+    # setting non-field attributes
+    config.non_member = 5  # type: ignore[attr-defined]
+    assert "non_member" not in config
+    assert not config.has("non_member")
+    assert config.get("non_member", -1) == -1
 
     # try serialization and deserialization
     print(config.serialize())

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "coqpit-config"
-version = "0.2.2"
+version = "0.2.3"
 description = "Simple (maybe too simple), light-weight config management through python data-classes."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -36,10 +36,10 @@ dependencies = [
 [dependency-groups]
 dev = [
     "coverage>=7",
-    "mypy==1.18.2",
+    "mypy==1.19.1",
     "pre-commit>=4",
-    "pytest>=8",
-    "ruff==0.13.2",
+    "pytest>=9",
+    "ruff==0.14.10",
 ]
 
 [project.urls]
@@ -60,6 +60,15 @@ exclude = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["coqpit"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+skip_empty = true
+
+[tool.coverage.run]
+source = ["coqpit", "tests"]
+command_line = "-m pytest"
 
 [tool.ruff]
 line-length = 120

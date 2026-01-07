@@ -37,8 +37,8 @@ class NestedConfig(Coqpit):
         check_argument("sc", c, restricted=True, allow_none=True)
 
 
-def test_nested() -> None:
-    file_path = Path(__file__).resolve().parent / "example_config.json"
+def test_nested(tmp_path: Path) -> None:
+    file_path = tmp_path / "example_config.json"
     # init 🐸 dataclass
     config = NestedConfig()
 
