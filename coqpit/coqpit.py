@@ -338,20 +338,21 @@ def _deserialize(x: Any, field_type: FieldType) -> Any:  # noqa: PLR0911
         object: deserialized object
 
     """
+    base_type = _drop_none_type(field_type)
     if isinstance(field_type, str):
         msg = "Strings as type hints are not supported."
         raise NotImplementedError(msg)
-    if _is_dict(_drop_none_type(field_type)):
+    if _is_dict(base_type):
         return _deserialize_dict(x)
-    if _is_list(_drop_none_type(field_type)):
-        return _deserialize_list(x, _drop_none_type(field_type))
+    if _is_list(base_type):
+        return _deserialize_list(x, base_type)
     if _is_union_and_not_simple_optional(field_type):
-        return _deserialize_union(x, field_type)  # ty: ignore[invalid-argument-type]
-    if not _is_union(field_type) and isinstance(field_type, type) and issubclass(field_type, Serializable):
-        return field_type.deserialize_immutable(x)
-    if _drop_none_type(field_type) is Path:
+        return _deserialize_union(x, field_type)
+    if not _is_union(base_type) and isinstance(base_type, type) and issubclass(base_type, Serializable):
+        return base_type.deserialize_immutable(x)
+    if base_type is Path:
         return _deserialize_path(x, field_type)
-    if _is_primitive_type(_drop_none_type(field_type)):
+    if _is_primitive_type(base_type):
         return _deserialize_primitive_types(x, field_type)
     if _is_literal_type(field_type):
         return _deserialize_literal(x, field_type)
