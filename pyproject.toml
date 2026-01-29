@@ -68,7 +68,7 @@ skip_empty = true
 
 [tool.coverage.run]
 source = ["coqpit", "tests"]
-command_line = "-m pytest"
+command_line = "-m pytest -W error"
 
 [tool.ruff]
 line-length = 120
