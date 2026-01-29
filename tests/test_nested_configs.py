@@ -25,6 +25,8 @@ class NestedConfig(Coqpit):
     val_f: str = "Coqpit is great!"
     sc_list: list[SimpleConfig] | None = None
     sc: SimpleConfig = field(default_factory=lambda: SimpleConfig())
+    sc_optional: SimpleConfig | None = None
+    sc_optional2: SimpleConfig | None = field(default_factory=lambda: SimpleConfig())
     union_var: list[SimpleConfig] | SimpleConfig = field(default_factory=lambda: [SimpleConfig(), SimpleConfig()])
 
     def check_values(self) -> None:
@@ -44,9 +46,9 @@ def test_nested(tmp_path: Path) -> None:
 
     # save to a json file
     config.save_json(file_path)
-    # load a json file
+    # create a new config with different values than the defaults
     config2 = NestedConfig(val_e=500)
-    # update the config with the json file.
+    # update the config from the json file.
     config2.load_json(file_path)
     # now they should be having the same values.
     assert config == config2
@@ -56,9 +58,9 @@ def test_nested(tmp_path: Path) -> None:
 
     # export values to a dict
     config_dict = config.to_dict()
-    # crate a new config with different values than the defaults
+    # create a new config with different values than the defaults
     config2 = NestedConfig(val_e=500)
-    # update the config with the exported valuess from the previous config.
+    # update the config with the exported values from the previous config.
     config2.from_dict(config_dict)
     # now they should be having the same values.
     assert config == config2
