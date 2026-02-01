@@ -687,6 +687,19 @@ def _add_argument(  # noqa: C901, PLR0913, PLR0912, PLR0915
         if not relaxed_parser:
             msg = " [!] Parsing `Union` field from argparse is not yet implemented. Please create an issue."
             raise NotImplementedError(msg)
+    elif _is_literal_type(field_type):
+        type_args = typing.get_args(field_type)
+        literal_type = type(type_args[0])
+        if not all(type(x) is literal_type for x in type_args):
+            msg = "Mixing literals of different types is not supported."
+            raise TypeError(msg)
+        parser.add_argument(
+            f"--{arg_prefix}",
+            default=field_default,
+            type=literal_type,
+            choices=type_args,
+            help=f"Coqpit Field: {help_prefix}",
+        )
     elif not _is_union(field_type) and issubclass(field_type, Coqpit):
         if not isinstance(default, Coqpit):
             msg = f"Default value must be a Coqpit instance, got {default}"
