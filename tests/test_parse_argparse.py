@@ -1,4 +1,5 @@
 from dataclasses import asdict, dataclass, field
+from typing import Literal
 
 from coqpit.coqpit import Coqpit, check_argument
 
@@ -32,6 +33,8 @@ class SimpleConfig(Coqpit):
     str_or_list: str | list[str] | None = field(default=None)
     str_or_list_empty_default: str | list[str] | None = field(default_factory=list)
     bool_or_list: bool | list[bool] | None = field(default=None)
+    str_literal: Literal["A", "B"] = "B"
+    int_literal: Literal[1, 2] = 2
 
     # TODO: not supported yet
     # mylist_without_default: List[SimplerConfig] = field(default=None)  noqa: ERA001
@@ -61,6 +64,8 @@ def test_parse_argparse() -> None:
     args.extend(["--coqpit.float_or_list", "3.4"])
     args.extend(["--coqpit.str_or_list", "a", "b"])
     args.extend(["--coqpit.bool_or_list", "true"])
+    args.extend(["--coqpit.str_literal", "A"])
+    args.extend(["--coqpit.int_literal", "1"])
 
     # initial config
     config = SimpleConfig(int_list_empty_default=[55, 77], str_or_list_empty_default="a")
@@ -84,6 +89,8 @@ def test_parse_argparse() -> None:
         str_or_list=["a", "b"],
         str_or_list_empty_default="a",
         bool_or_list=[True],
+        str_literal="A",
+        int_literal=1,
     )
 
     # create and init argparser with Coqpit
