@@ -15,9 +15,9 @@ from dataclasses import Field, asdict, dataclass, fields, is_dataclass, replace
 from pathlib import Path
 from pprint import pprint
 from types import UnionType
-from typing import TYPE_CHECKING, Any, Generic, Literal, TypeAlias, TypeGuard, TypeVar, Union, overload
+from typing import TYPE_CHECKING, Any, Generic, Literal, Self, TypeAlias, TypeGuard, TypeVar, Union, overload
 
-from typing_extensions import Self, TypeIs
+from typing_extensions import TypeIs
 
 if TYPE_CHECKING:  # pragma: no cover
     import os
@@ -288,7 +288,6 @@ def _deserialize_primitive_types(
     base_type = _drop_none_type(field_type)
     if base_type is not float and base_type is not int and base_type is not str and base_type is not bool:
         raise TypeError
-    base_type = typing.cast("type[int | float | str | bool]", base_type)
 
     type_mismatch = f"Value `{x}` does not match field type `{field_type}`"
     if x is None and type(None) in typing.get_args(field_type):
@@ -556,7 +555,7 @@ def _get_help(field: Field[Any]) -> str:
         return ""
 
 
-def _add_argument(  # noqa: C901, PLR0913, PLR0912, PLR0915
+def _add_argument(  # noqa: C901, PLR0913, PLR0912, PLR0915, PLR0917
     parser: argparse.ArgumentParser,
     field_name: str,
     field_type: FieldType,
