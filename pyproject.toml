@@ -35,10 +35,10 @@ dependencies = [
 [dependency-groups]
 dev = [
     "coverage>=7",
-    "mypy==1.19.1",
+    "mypy==2.3.1",
     "pre-commit>=4",
     "pytest>=9",
-    "ruff==0.14.10",
+    "ruff==0.17.1",
 ]
 
 [project.urls]
@@ -74,10 +74,12 @@ line-length = 120
 lint.select = ["ALL"]
 lint.ignore = [
     "ANN401",
+    "CPY001",
     "D104",
     "FIX",
     "TD",
 ]
+lint.preview = true
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -87,6 +89,7 @@ convention = "google"
     "D",
     "FA100",
     "FBT001",
+    "PLC2701",
     "PLR2004",
     "S101",
     "SLF001",
