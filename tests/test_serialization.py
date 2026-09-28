@@ -185,8 +185,8 @@ def test_deserialize_union(value: Any, field_type: UnionType, expected: Any) -> 
         (1, Literal[1, 2, 3], 1),
         (2, Literal[1, 2, 3], 2),
         (3, Literal[1, 2, 3], 3),
-        (True, Literal[True, False], True),
-        (False, Literal[True, False], False),
+        (True, Literal[True, False], True),  # ruff: ignore[redundant-bool-literal]
+        (False, Literal[True, False], False),  # ruff: ignore[redundant-bool-literal]
         ("a", Literal["a", 1, True], "a"),
         (1, Literal["a", 1, True], 1),
         (True, Literal["a", 1, True], True),
