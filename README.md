@@ -263,8 +263,8 @@ if __name__ == "__main__":
 
 ## Development
 
-Install the pre-commit hook to automatically check your commits for style and hinting issues:
+Install the [prek](https://prek.j178.dev/) pre-commit hook to automatically check your commits for style and lint issues:
 
 ```bash
-uv run pre-commit install
+uv run prek install
 ```
