@@ -1286,10 +1286,10 @@ def check_argument(  # ruff: ignore[too-many-arguments,complex-structure]
     if name in c:
         if max_val is not None and c[name] > max_val:
             msg = f" [!] {name} is larger than max value {max_val}"
-            raise ValueError
+            raise ValueError(msg)
         if min_val is not None and c[name] < min_val:
             msg = f" [!] {name} is smaller than min value {min_val}"
-            raise ValueError
+            raise ValueError(msg)
         if enum_list is not None and c[name].lower() not in enum_list:
             msg = f" [!] {name} is not a valid value"
-            raise ValueError
+            raise ValueError(msg)
