@@ -261,9 +261,9 @@ def _deserialize_list(x: list[Any], field_type: FieldType) -> list[Any]:
         msg = "Coqpit does not support multi-type hinted 'List'"
         raise ValueError(msg)
     field_arg = field_args[0]
-    # if field type is TypeVar set the current type by the value's type.
+    # if field type is TypeVar set the current type by each value's type.
     if isinstance(field_arg, TypeVar):
-        field_arg = type(x)
+        return [_deserialize(xi, type(xi)) for xi in x]
     return [_deserialize(xi, field_arg) for xi in x]
 
 
