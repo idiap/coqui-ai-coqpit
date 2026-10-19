@@ -406,14 +406,14 @@ CoqpitNestedValue: TypeAlias = Union["CoqpitValue", CoqpitType]
 CoqpitValue: TypeAlias = str | int | float | bool | None
 
 
-# TODO: It should be possible to get rid of the next 3 `type: ignore`. At
-# nested levels, the key can be `str | int` as well, not just `str`.
+# At nested levels, values can also be lists, so they are indexed with `str | int`
+# keys and typed as `Any` while traversing.
 def _rsetattr(obj: CoqpitType, keys: str, val: CoqpitValue) -> None:
     """Recursive setattr (supports dotted key names)."""
     pre, _, post = keys.rpartition(".")
-    target = _rgetattr(obj, pre) if pre else obj
+    target: Any = _rgetattr(obj, pre) if pre else obj
     if post.isnumeric():
-        operator.setitem(target, int(post), val)  # type: ignore[misc]
+        target[int(post)] = val
     else:
         setattr(target, post, val)
 
@@ -424,10 +424,10 @@ def _rgetattr(obj: CoqpitType, keys: str) -> CoqpitType:
     Returns:
         The value at the given (dotted) key.
     """
-    v = obj
+    v: Any = obj
     for k in keys.split("."):
-        v = operator.getitem(v, int(k)) if k.isnumeric() else getattr(v, k)  # type: ignore[arg-type]
-    return v
+        v = v[int(k)] if k.isnumeric() else getattr(v, k)
+    return typing.cast("CoqpitType", v)
 
 
 def _rsetitem(obj: CoqpitType, keys: str, value: CoqpitValue) -> None:
@@ -447,10 +447,10 @@ def _rgetitem(obj: CoqpitType, keys: str) -> CoqpitType:
     Returns:
         The value at the given (dotted) key.
     """
-    v = obj
+    v: Any = obj
     for k in keys.split("."):
-        v = operator.getitem(v, int(k) if k.isnumeric() else k)  # type: ignore[arg-type]
-    return v
+        v = v[int(k) if k.isnumeric() else k]
+    return typing.cast("CoqpitType", v)
 
 
 @dataclass
@@ -917,9 +917,9 @@ class Coqpit(Serializable, CoqpitType):
         """
         return arg in self.to_dict()
 
-    def get(self, key: str, default: Any = None) -> Any:
+    def get(self, key: object, default: Any = None) -> Any:
         """Return value of the given attribute if present, otherwise the default."""
-        if self.has(key):
+        if isinstance(key, str) and self.has(key):
             return self[key]
         return default
 
