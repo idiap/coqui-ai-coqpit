@@ -149,7 +149,7 @@ class ArgparseWithRequiredField(Coqpit):
 def test_argparse_with_required_field() -> None:
     args = ["--coqpit.val_a", "10"]
     try:
-        c = ArgparseWithRequiredField()  # type: ignore[call-arg]
+        c = ArgparseWithRequiredField()  # ty: ignore[missing-argument]
         raise AssertionError  # pragma: no cover, should not reach this
     except TypeError:
         # __init__ should fail due to missing val_a
