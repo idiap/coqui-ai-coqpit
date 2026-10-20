@@ -15,9 +15,9 @@ from dataclasses import Field, asdict, dataclass, fields, is_dataclass, replace
 from pathlib import Path
 from pprint import pprint
 from types import UnionType
-from typing import TYPE_CHECKING, Any, Generic, Literal, TypeAlias, TypeGuard, TypeVar, Union, overload
+from typing import TYPE_CHECKING, Any, Generic, Literal, Self, TypeAlias, TypeGuard, TypeVar, Union, overload
 
-from typing_extensions import Self, TypeIs
+from typing_extensions import TypeIs
 
 if TYPE_CHECKING:  # pragma: no cover
     import os
@@ -36,7 +36,7 @@ class _NoDefault(Generic[_T]):
 NoDefaultVar: TypeAlias = _NoDefault[_T] | _T
 no_default: NoDefaultVar[Any] = _NoDefault()
 
-FieldType: TypeAlias = Union[str, type, "UnionType"]
+FieldType: TypeAlias = str | type | UnionType
 
 
 def _is_primitive_type(field_type: FieldType) -> TypeGuard[type]:
@@ -52,7 +52,14 @@ def _is_primitive_type(field_type: FieldType) -> TypeGuard[type]:
 
 
 def _is_literal_type(field_type: FieldType) -> TypeGuard[type]:
-    """Check if the input type is a typing.Literal type."""
+    """Check if the input type is a typing.Literal type.
+
+    Args:
+        field_type: input type.
+
+    Returns:
+        bool: True if input type is a `Literal`.
+    """
     return typing.get_origin(field_type) is Literal
 
 
@@ -86,7 +93,7 @@ def _parse_list_union(field_type: FieldType) -> type | None:
     args = typing.get_args(field_type)
     is_list = [_is_list(arg) for arg in args]
     base_types = [_get_base_type(arg) for arg in args]
-    return base_types[0] if len(args) == 2 and sum(is_list) == 1 and base_types[0] == base_types[1] else None  # noqa: PLR2004
+    return base_types[0] if len(args) == 2 and sum(is_list) == 1 and base_types[0] == base_types[1] else None  # ruff: ignore[magic-value-comparison]
 
 
 def _is_dict(field_type: FieldType) -> TypeGuard[type]:
@@ -128,7 +135,7 @@ def _is_union_and_not_simple_optional(field_type: FieldType) -> TypeGuard[UnionT
     """
     args = typing.get_args(field_type)
     is_python_union = _is_union(field_type)
-    if is_python_union and len(args) == 2 and type(None) in args:  # noqa: PLR2004
+    if is_python_union and len(args) == 2 and type(None) in args:  # ruff: ignore[magic-value-comparison]
         # This is an Optional type like `int | None`
         return False
     return is_python_union
@@ -167,6 +174,12 @@ def _drop_none_type(field_type: FieldType) -> FieldType:
 
     >>> _drop_none_type(str | int | None)
     str | int
+
+    Args:
+        field_type: input type.
+
+    Returns:
+        The input type without `None`.
     """
     if not _is_union(field_type):
         return field_type
@@ -175,7 +188,7 @@ def _drop_none_type(field_type: FieldType) -> FieldType:
         args.remove(type(None))
     if len(args) == 1:
         return typing.cast("type", args[0])
-    return typing.cast("UnionType", functools.reduce(lambda a, b: a | b, args))
+    return typing.cast("UnionType", functools.reduce(operator.or_, args))
 
 
 def _serialize(x: Any) -> Any:
@@ -208,6 +221,9 @@ def _deserialize_dict(x: dict[Any, Any]) -> dict[Any, Any]:
 
     Returns:
         Dict: deserialized dictionary.
+
+    Raises:
+        TypeError: if the value is not a dictionary.
     """
     if not isinstance(x, dict):
         msg = f"Value `{x}` is not a dictionary"
@@ -228,11 +244,12 @@ def _deserialize_list(x: list[Any], field_type: FieldType) -> list[Any]:
         x (List): value to be deserialized
         field_type (Type): field type.
 
-    Raises:
-        ValueError: Coqpit does not support multi type-hinted lists.
-
     Returns:
         [List]: deserialized list.
+
+    Raises:
+        TypeError: if the value is not a list.
+        ValueError: Coqpit does not support multi type-hinted lists.
     """
     if not isinstance(x, list):
         msg = f"Value `{x}` does not match field type `{field_type}`"
@@ -244,9 +261,9 @@ def _deserialize_list(x: list[Any], field_type: FieldType) -> list[Any]:
         msg = "Coqpit does not support multi-type hinted 'List'"
         raise ValueError(msg)
     field_arg = field_args[0]
-    # if field type is TypeVar set the current type by the value's type.
+    # if field type is TypeVar set the current type by each value's type.
     if isinstance(field_arg, TypeVar):
-        field_arg = type(x)
+        return [_deserialize(xi, type(xi)) for xi in x]
     return [_deserialize(xi, field_arg) for xi in x]
 
 
@@ -271,7 +288,7 @@ def _deserialize_union(x: Any, field_type: UnionType) -> Any:
 
 
 def _deserialize_primitive_types(
-    x: int | float | str | bool | None,  # noqa: PYI041, FBT001
+    x: float | str | bool | None,  # ruff: ignore[boolean-type-hint-positional-argument]
     field_type: FieldType,
 ) -> int | float | str | bool | None:
     """Deserialize python primitive types (float, int, str, bool).
@@ -284,11 +301,13 @@ def _deserialize_primitive_types(
 
     Returns:
         Union[int, float, str, bool]: deserialized value.
+
+    Raises:
+        TypeError: if the field type is not primitive or the value does not match it.
     """
     base_type = _drop_none_type(field_type)
     if base_type is not float and base_type is not int and base_type is not str and base_type is not bool:
         raise TypeError
-    base_type = typing.cast("type[int | float | str | bool]", base_type)
 
     type_mismatch = f"Value `{x}` does not match field type `{field_type}`"
     if x is None and type(None) in typing.get_args(field_type):
@@ -312,7 +331,18 @@ def _deserialize_primitive_types(
 
 
 def _deserialize_literal(x: Any, field_type: FieldType) -> Any:
-    """Deserialize a typing.Literal field."""
+    """Deserialize a typing.Literal field.
+
+    Args:
+        x (Any): value to be deserialized.
+        field_type (Type): field type.
+
+    Returns:
+        Any: the value, if it is one of the literal's values.
+
+    Raises:
+        TypeError: if the value is not one of the literal's values.
+    """
     for value in typing.get_args(field_type):
         if x == value:
             return x
@@ -321,13 +351,21 @@ def _deserialize_literal(x: Any, field_type: FieldType) -> Any:
 
 
 def _deserialize_path(x: Any, field_type: FieldType) -> Path | None:
-    """Deserialize to a Path."""
+    """Deserialize to a Path.
+
+    Args:
+        x (Any): value to be deserialized.
+        field_type (Type): field type.
+
+    Returns:
+        Path or None: deserialized path, or None for an optional field set to None.
+    """
     if x is None and _is_optional_field(field_type):
         return None
     return Path(x)
 
 
-def _deserialize(x: Any, field_type: FieldType) -> Any:  # noqa: PLR0911
+def _deserialize(x: Any, field_type: FieldType) -> Any:  # ruff: ignore[too-many-return-statements]
     """Pick the right deserialization for the given object and the corresponding field type.
 
     Args:
@@ -337,6 +375,9 @@ def _deserialize(x: Any, field_type: FieldType) -> Any:  # noqa: PLR0911
     Returns:
         object: deserialized object
 
+    Raises:
+        NotImplementedError: if the type hint is a string.
+        TypeError: if the value does not match a supported field type.
     """
     base_type = _drop_none_type(field_type)
     if isinstance(field_type, str):
@@ -365,24 +406,28 @@ CoqpitNestedValue: TypeAlias = Union["CoqpitValue", CoqpitType]
 CoqpitValue: TypeAlias = str | int | float | bool | None
 
 
-# TODO: It should be possible to get rid of the next 3 `type: ignore`. At
-# nested levels, the key can be `str | int` as well, not just `str`.
+# At nested levels, values can also be lists, so they are indexed with `str | int`
+# keys and typed as `Any` while traversing.
 def _rsetattr(obj: CoqpitType, keys: str, val: CoqpitValue) -> None:
     """Recursive setattr (supports dotted key names)."""
     pre, _, post = keys.rpartition(".")
-    target = _rgetattr(obj, pre) if pre else obj
+    target: Any = _rgetattr(obj, pre) if pre else obj
     if post.isnumeric():
-        operator.setitem(target, int(post), val)  # type: ignore[misc]
+        target[int(post)] = val
     else:
         setattr(target, post, val)
 
 
 def _rgetattr(obj: CoqpitType, keys: str) -> CoqpitType:
-    """Recursive getattr (supports dotted key names)."""
-    v = obj
+    """Recursive getattr (supports dotted key names).
+
+    Returns:
+        The value at the given (dotted) key.
+    """
+    v: Any = obj
     for k in keys.split("."):
-        v = operator.getitem(v, int(k)) if k.isnumeric() else getattr(v, k)  # type: ignore[arg-type]
-    return v
+        v = v[int(k)] if k.isnumeric() else getattr(v, k)
+    return typing.cast("CoqpitType", v)
 
 
 def _rsetitem(obj: CoqpitType, keys: str, value: CoqpitValue) -> None:
@@ -398,11 +443,14 @@ def _rgetitem(obj: CoqpitType, keys: str) -> CoqpitType:
     """Recursive getitem (supports dotted key names).
 
     _rgetitem(a, "b.c") => a["b"]["c"]
+
+    Returns:
+        The value at the given (dotted) key.
     """
-    v = obj
+    v: Any = obj
     for k in keys.split("."):
-        v = operator.getitem(v, int(k) if k.isnumeric() else k)  # type: ignore[arg-type]
-    return v
+        v = v[int(k) if k.isnumeric() else k]
+    return typing.cast("CoqpitType", v)
 
 
 @dataclass
@@ -410,7 +458,11 @@ class Serializable:
     """Gives serialization ability to any inheriting dataclass."""
 
     def __post_init__(self) -> None:
-        """Validate contracts and check required arguments are specified."""
+        """Validate contracts and check required arguments are specified.
+
+        Raises:
+            TypeError: if a required argument is missing.
+        """
         self._validate_contracts()
         for key, value in self.__dict__.items():
             if value is no_default:
@@ -418,7 +470,12 @@ class Serializable:
                 raise TypeError(msg)
 
     def _validate_contracts(self) -> None:
-        """Validate contracts specified in the dataclass."""
+        """Validate contracts specified in the dataclass.
+
+        Raises:
+            TypeError: if a non-optional field is None.
+            ValueError: if a field breaks its contract.
+        """
         dataclass_fields = fields(self)
 
         for field in dataclass_fields:
@@ -435,14 +492,22 @@ class Serializable:
                 raise ValueError(msg)
 
     def validate(self) -> None:
-        """Validate if object can serialize / deserialize correctly."""
+        """Validate if object can serialize / deserialize correctly.
+
+        Raises:
+            ValueError: if the object does not round-trip to the same value.
+        """
         self._validate_contracts()
         if self != self.__class__().deserialize(json.loads(json.dumps(self.serialize()))):
             msg = "could not be deserialized with same value"
             raise ValueError(msg)
 
     def to_dict(self) -> dict[str, Any]:
-        """Transform serializable object to dict."""
+        """Transform serializable object to dict.
+
+        Returns:
+            Mapping of field names to values.
+        """
         cls_fields = fields(self)
         o = {}
         for cls_field in cls_fields:
@@ -450,7 +515,14 @@ class Serializable:
         return o
 
     def serialize(self) -> dict[str, Any]:
-        """Serialize object to be json serializable representation."""
+        """Serialize object to be json serializable representation.
+
+        Returns:
+            JSON serializable mapping of field names to values.
+
+        Raises:
+            TypeError: if the object is not a dataclass.
+        """
         if not is_dataclass(self):
             msg = "need to be decorated as dataclass"
             raise TypeError(msg)
@@ -470,6 +542,10 @@ class Serializable:
 
         Returns:
             self: deserialized `self`.
+
+        Raises:
+            TypeError: if the input is not a dictionary.
+            ValueError: if a required field is missing or has an unknown value.
         """
         if not isinstance(data, dict):
             raise TypeError
@@ -514,6 +590,10 @@ class Serializable:
 
         Returns:
             Newly created deserialized object.
+
+        Raises:
+            TypeError: if the input is not a dictionary.
+            ValueError: if a required field is missing or has an unknown value.
         """
         if not isinstance(data, dict):
             raise TypeError
@@ -527,7 +607,7 @@ class Serializable:
                     continue
                 # if not in cls and the default value is not Missing use it
                 default_value = _default_value(field)
-                if default_value not in (MISSING, _MISSING):
+                if default_value not in (MISSING, _MISSING):  # ruff: ignore[literal-membership]
                     init_kwargs[field.name] = default_value
                     continue
                 msg = f' [!] Missing required field "{field.name}"'
@@ -556,7 +636,7 @@ def _get_help(field: Field[Any]) -> str:
         return ""
 
 
-def _add_argument(  # noqa: C901, PLR0913, PLR0912, PLR0915
+def _add_argument(  # ruff: ignore[complex-structure,too-many-arguments,too-many-positional-arguments,too-many-branches,too-many-statements]
     parser: argparse.ArgumentParser,
     field_name: str,
     field_type: FieldType,
@@ -568,7 +648,16 @@ def _add_argument(  # noqa: C901, PLR0913, PLR0912, PLR0915
     *,
     relaxed_parser: bool = False,
 ) -> argparse.ArgumentParser:
-    """Add a new argument to the argparse parser, matching the given field."""
+    """Add a new argument to the argparse parser, matching the given field.
+
+    Returns:
+        argparse.ArgumentParser: parser instance with the new argument.
+
+    Raises:
+        NotImplementedError: if the field type is not supported by the parser.
+        TypeError: if the default value does not match the field type.
+        ValueError: if a list field is un-hinted or has multiple type hints.
+    """
     if isinstance(field_type, str):
         msg = "Strings as type hints are not supported."
         raise NotImplementedError(msg)
@@ -590,8 +679,8 @@ def _add_argument(  # noqa: C901, PLR0913, PLR0912, PLR0915
         # aggregate types (fields with a Coqpit subclass as type) are not
         # supported without None
         return parser
-    arg_prefix = field_name if arg_prefix == "" else f"{arg_prefix}.{field_name}"
-    help_prefix = field_help if help_prefix == "" else f"{help_prefix} - {field_help}"
+    arg_prefix = field_name if not arg_prefix else f"{arg_prefix}.{field_name}"
+    help_prefix = field_help if not help_prefix else f"{help_prefix} - {field_help}"
     if _is_dict(field_type):
         # NOTE: accept any string in json format as input to dict field.
         parser.add_argument(
@@ -714,7 +803,7 @@ def _add_argument(  # noqa: C901, PLR0913, PLR0912, PLR0915
     elif field_type is bool:
 
         def parse_bool(x: str) -> bool:
-            if x not in ("true", "false"):
+            if x not in {"true", "false"}:
                 msg = f' [!] Value for boolean field must be either "true" or "false". Got "{x}".'
                 raise ValueError(msg)
             return x == "true"
@@ -747,7 +836,7 @@ def _add_argument(  # noqa: C901, PLR0913, PLR0912, PLR0915
 # ---------------------------------------------------------------------------- #
 
 
-@dataclass
+@dataclass  # ruff: ignore[too-many-public-methods]
 class Coqpit(Serializable, CoqpitType):
     """Coqpit base class to be inherited by any Coqpit dataclasses.
 
@@ -765,6 +854,9 @@ class Coqpit(Serializable, CoqpitType):
 
         Useful to prevent running some aux functions
         at the initialization when no attribute has been defined.
+
+        Returns:
+            True if the Coqpit is initialized.
         """
         return "_initialized" in vars(self) and self._initialized
 
@@ -774,7 +866,7 @@ class Coqpit(Serializable, CoqpitType):
         with contextlib.suppress(AttributeError):
             self.check_values()
 
-    ## `dict` API functions
+    # `dict` API functions
 
     def __iter__(self) -> Iterator[str]:
         """Return iterator over the Coqpit."""
@@ -789,20 +881,28 @@ class Coqpit(Serializable, CoqpitType):
         setattr(self, arg, value)
 
     def __getitem__(self, arg: str) -> Any:
-        """Access class attributes with ``[arg]``."""
+        """Access class attributes with ``[arg]``.
+
+        Returns:
+            The value of the attribute.
+        """
         return self.__dict__[arg]
 
     def __delitem__(self, arg: str) -> None:
         """Remove an attribute."""
         delattr(self, arg)
 
-    def _keytransform(self, key: str) -> str:
-        return key
-
-    ## end `dict` API functions
+    # end `dict` API functions
 
     def __getattribute__(self, arg: str) -> Any:
-        """Check if the mandatory field is defined when accessing it."""
+        """Check if the mandatory field is defined when accessing it.
+
+        Returns:
+            The value of the attribute.
+
+        Raises:
+            AttributeError: if a mandatory field is not defined.
+        """
         value = super().__getattribute__(arg)
         if isinstance(value, str) and value == "???":
             msg = f" [!] MISSING field {arg} must be defined."
@@ -810,12 +910,16 @@ class Coqpit(Serializable, CoqpitType):
         return value
 
     def __contains__(self, arg: object) -> bool:
-        """Check whether the Coqpit contains the given attribute."""
+        """Check whether the Coqpit contains the given attribute.
+
+        Returns:
+            True if the attribute is present.
+        """
         return arg in self.to_dict()
 
-    def get(self, key: str, default: Any = None) -> Any:
+    def get(self, key: object, default: Any = None) -> Any:
         """Return value of the given attribute if present, otherwise the default."""
-        if self.has(key):
+        if isinstance(key, str) and self.has(key):
             return self[key]
         return default
 
@@ -830,7 +934,11 @@ class Coqpit(Serializable, CoqpitType):
         """
 
     def has(self, arg: str) -> bool:
-        """Check whether the Coqpit has the given attribute."""
+        """Check whether the Coqpit has the given attribute.
+
+        Returns:
+            True if the Coqpit has a field with the given name.
+        """
         return any(field.name == arg for field in fields(self))
 
     def copy(self) -> Self:
@@ -854,7 +962,7 @@ class Coqpit(Serializable, CoqpitType):
             for key in other:
                 setattr(self, key, other[key])
         elif hasattr(other, "keys"):
-            for key in other.keys():  # noqa: SIM118
+            for key in other.keys():  # ruff: ignore[in-dict-keys]
                 setattr(self, key, other[key])
         else:
             for key, value in other:
@@ -864,10 +972,14 @@ class Coqpit(Serializable, CoqpitType):
 
     def pprint(self) -> None:
         """Print Coqpit fields in a format."""
-        pprint(asdict(self))  # noqa: T203
+        pprint(asdict(self))  # ruff: ignore[p-print]
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert the Coqpit to a dictionary, serializing any values."""
+        """Convert the Coqpit to a dictionary, serializing any values.
+
+        Returns:
+            JSON serializable mapping of field names to values.
+        """
         return self.serialize()
 
     def from_dict(self, data: dict[str, Any]) -> None:
@@ -876,7 +988,11 @@ class Coqpit(Serializable, CoqpitType):
 
     @classmethod
     def new_from_dict(cls, data: dict[str, Any]) -> Self:
-        """Create a new Coqpit from a dictionary."""
+        """Create a new Coqpit from a dictionary.
+
+        Returns:
+            Newly created Coqpit.
+        """
         return cls.deserialize_immutable(data)
 
     def to_json(self) -> str:
@@ -899,13 +1015,9 @@ class Coqpit(Serializable, CoqpitType):
 
         Args:
             file_name (str): path to the json file.
-
-        Returns:
-            Coqpit: new Coqpit with updated config fields.
         """
-        with Path(file_name).open(encoding="utf8") as f:
-            input_str = f.read()
-            dump_dict = json.loads(input_str)
+        input_str = Path(file_name).read_text(encoding="utf8")
+        dump_dict = json.loads(input_str)
         self.deserialize(dump_dict)
         self.check_values()
 
@@ -923,6 +1035,9 @@ class Coqpit(Serializable, CoqpitType):
               newly created parser with ```init_argparse()```.
             arg_prefix: prefix to add to CLI parameters. Gets forwarded to
               ```init_argparse``` when ```args``` is not passed.
+
+        Returns:
+            Newly created Coqpit.
         """
         if not args:
             # If args was not specified, parse from sys.argv
@@ -976,6 +1091,9 @@ class Coqpit(Serializable, CoqpitType):
               newly created parser with ```init_argparse()```.
             arg_prefix: prefix to add to CLI parameters. Gets forwarded to
               ```init_argparse``` when ```args``` is not passed.
+
+        Raises:
+            TypeError: if an argument does not match an existing field.
         """
         if not args:
             # If args was not specified, parse from sys.argv
@@ -1097,7 +1215,7 @@ class Coqpit(Serializable, CoqpitType):
         return parser
 
 
-def check_argument(  # noqa: C901, PLR0913
+def check_argument(  # ruff: ignore[too-many-arguments,complex-structure]
     name: str,
     c: dict[str, Any],
     *,
@@ -1127,6 +1245,11 @@ def check_argument(  # noqa: C901, PLR0913
         alternative (str, optional): a field name superceding the target field. Defaults to None.
         allow_none (bool, optional): if ```True``` allow the target field to be ```None```. Defaults to False.
 
+    Raises:
+        FileNotFoundError: if ```is_path``` is set and the path does not exist.
+        KeyError: if a restricted or prerequested field is not defined.
+        TypeError: if the value is ```None``` and ```allow_none``` is not set.
+        ValueError: if the value violates ```max_val```, ```min_val``` or ```enum_list```.
 
     Example:
         >>> num_mels = 5
@@ -1163,10 +1286,10 @@ def check_argument(  # noqa: C901, PLR0913
     if name in c:
         if max_val is not None and c[name] > max_val:
             msg = f" [!] {name} is larger than max value {max_val}"
-            raise ValueError
+            raise ValueError(msg)
         if min_val is not None and c[name] < min_val:
             msg = f" [!] {name} is smaller than min value {min_val}"
-            raise ValueError
+            raise ValueError(msg)
         if enum_list is not None and c[name].lower() not in enum_list:
             msg = f" [!] {name} is not a valid value"
-            raise ValueError
+            raise ValueError(msg)
