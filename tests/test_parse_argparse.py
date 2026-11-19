@@ -149,7 +149,7 @@ class ArgparseWithRequiredField(Coqpit):
 def test_argparse_with_required_field() -> None:
     args = ["--coqpit.val_a", "10"]
     try:
-        c = ArgparseWithRequiredField()  # type: ignore[call-arg]
+        c = ArgparseWithRequiredField()  # ty: ignore[missing-argument]
         raise AssertionError  # pragma: no cover, should not reach this
     except TypeError:
         # __init__ should fail due to missing val_a
@@ -169,14 +169,14 @@ def test_init_argparse_list_and_nested() -> None:
         val_req: str  # required field
         val_a: int = field(default=10, metadata={"help": "this is val_a of SimpleConfig2"})
         val_b: int | None = field(default=None, metadata={"help": "this is val_b"})
-        nested_config: SimplerConfig2 = field(default_factory=lambda: SimplerConfig2())
+        nested_config: SimplerConfig2 = field(default_factory=SimplerConfig2)
         mylist_with_default: list[SimplerConfig2] = field(
             default_factory=lambda: [SimplerConfig2(val_a=100), SimplerConfig2(val_a=999)],
             metadata={"help": "list of SimplerConfig2"},
         )
 
         # TODO: not supported yet
-        # mylist_without_default: List[SimplerConfig2] = field(default=None)  # noqa: ERA001
+        # mylist_without_default: List[SimplerConfig2] = field(default=None)  # ruff: ignore[commented-out-code]
 
         def check_values(self) -> None:
             """Check config fields"""

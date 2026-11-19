@@ -82,7 +82,7 @@ class SimpleConfig(Coqpit):
     val_dict: dict = field(default_factory=lambda: {"val_aa": 10, "val_ss": "This is in a dict."})
     # list of list
     val_listoflist: List[List] = field(default_factory=lambda: [[1, 2], [3, 4]])
-    val_listofunion: List[List[Union[str,int]]] = field(default_factory=lambda: [[1, 3], [1, "Hi!"]])
+    val_listofunion: List[List[Union[str, int]]] = field(default_factory=lambda: [[1, 3], [1, "Hi!"]])
 
     def check_values(
         self,
@@ -135,12 +135,14 @@ class SimpleConfig(Coqpit):
     val_b: int = None
     val_c: str = "Coqpit is great!"
 
-    def check_values(self,):
-        '''Check config fields'''
+    def check_values(
+        self,
+    ):
+        """Check config fields"""
         c = asdict(self)
-        check_argument('val_a', c, restricted=True, min_val=10, max_val=2056)
-        check_argument('val_b', c, restricted=True, min_val=128, max_val=4058, allow_none=True)
-        check_argument('val_c', c, restricted=True)
+        check_argument("val_a", c, restricted=True, min_val=10, max_val=2056)
+        check_argument("val_b", c, restricted=True, min_val=128, max_val=4058, allow_none=True)
+        check_argument("val_c", c, restricted=True)
 
 
 @dataclass
@@ -150,29 +152,31 @@ class NestedConfig(Coqpit):
     val_f: str = "Coqpit is great!"
     sc_list: List[SimpleConfig] = None
     sc: SimpleConfig = SimpleConfig()
-    union_var: Union[List[SimpleConfig], SimpleConfig] = field(default_factory=lambda: [SimpleConfig(),SimpleConfig()])
+    union_var: Union[List[SimpleConfig], SimpleConfig] = field(default_factory=lambda: [SimpleConfig(), SimpleConfig()])
 
-    def check_values(self,):
-        '''Check config fields'''
+    def check_values(
+        self,
+    ):
+        """Check config fields"""
         c = asdict(self)
-        check_argument('val_d', c, restricted=True, min_val=10, max_val=2056)
-        check_argument('val_e', c, restricted=True, min_val=128, max_val=4058, allow_none=True)
-        check_argument('val_f', c, restricted=True)
-        check_argument('sc_list', c, restricted=True, allow_none=True)
-        check_argument('sc', c, restricted=True, allow_none=True)
+        check_argument("val_d", c, restricted=True, min_val=10, max_val=2056)
+        check_argument("val_e", c, restricted=True, min_val=128, max_val=4058, allow_none=True)
+        check_argument("val_f", c, restricted=True)
+        check_argument("sc_list", c, restricted=True, allow_none=True)
+        check_argument("sc", c, restricted=True, allow_none=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     file_path = os.path.dirname(os.path.abspath(__file__))
     # init 🐸 dataclass
     config = NestedConfig()
 
     # save to a json file
-    config.save_json(os.path.join(file_path, 'example_config.json'))
+    config.save_json(os.path.join(file_path, "example_config.json"))
     # load a json file
     config2 = NestedConfig(val_d=None, val_e=500, val_f=None, sc_list=None, sc=None, union_var=None)
     # update the config with the json file.
-    config2.load_json(os.path.join(file_path, 'example_config.json'))
+    config2.load_json(os.path.join(file_path, "example_config.json"))
     # now they should be having the same values.
     assert config == config2
 
@@ -203,47 +207,41 @@ import sys
 
 @dataclass
 class SimplerConfig(Coqpit):
-    val_a: int = field(default=None, metadata={'help': 'this is val_a'})
+    val_a: int = field(default=None, metadata={"help": "this is val_a"})
 
 
 @dataclass
 class SimpleConfig(Coqpit):
-    val_req: str # required field
-    val_a: int = field(default=10,
-                       metadata={'help': 'this is val_a of SimpleConfig'})
-    val_b: int = field(default=None, metadata={'help': 'this is val_b'})
+    val_req: str  # required field
+    val_a: int = field(default=10, metadata={"help": "this is val_a of SimpleConfig"})
+    val_b: int = field(default=None, metadata={"help": "this is val_b"})
     nested_config: SimplerConfig = SimplerConfig()
     mylist_with_default: List[SimplerConfig] = field(
-        default_factory=lambda:
-        [SimplerConfig(val_a=100),
-         SimplerConfig(val_a=999)],
-        metadata={'help': 'list of SimplerConfig'})
+        default_factory=lambda: [SimplerConfig(val_a=100), SimplerConfig(val_a=999)],
+        metadata={"help": "list of SimplerConfig"},
+    )
 
     # mylist_without_default: List[SimplerConfig] = field(default=None, metadata={'help': 'list of SimplerConfig'})  # NOT SUPPORTED YET!
 
-    def check_values(self, ):
-        '''Check config fields'''
+    def check_values(
+        self,
+    ):
+        """Check config fields"""
         c = asdict(self)
-        check_argument('val_a', c, restricted=True, min_val=10, max_val=2056)
-        check_argument('val_b',
-                       c,
-                       restricted=True,
-                       min_val=128,
-                       max_val=4058,
-                       allow_none=True)
-        check_argument('val_req', c, restricted=True)
+        check_argument("val_a", c, restricted=True, min_val=10, max_val=2056)
+        check_argument("val_b", c, restricted=True, min_val=128, max_val=4058, allow_none=True)
+        check_argument("val_req", c, restricted=True)
 
 
 def main():
     # reference config that we like to match with the one parsed from argparse
-    config_ref = SimpleConfig(val_req='this is different',
-                              val_a=222,
-                              val_b=999,
-                              nested_config=SimplerConfig(val_a=333),
-                              mylist_with_default=[
-                                  SimplerConfig(val_a=222),
-                                  SimplerConfig(val_a=111)
-                              ])
+    config_ref = SimpleConfig(
+        val_req="this is different",
+        val_a=222,
+        val_b=999,
+        nested_config=SimplerConfig(val_a=333),
+        mylist_with_default=[SimplerConfig(val_a=222), SimplerConfig(val_a=111)],
+    )
 
     # create new config object from CLI inputs
     parsed = SimpleConfig.init_from_argparse()
@@ -253,20 +251,20 @@ def main():
     assert parsed == config_ref
 
 
-if __name__ == '__main__':
-    sys.argv.extend(['--coqpit.val_req', 'this is different'])
-    sys.argv.extend(['--coqpit.val_a', '222'])
-    sys.argv.extend(['--coqpit.val_b', '999'])
-    sys.argv.extend(['--coqpit.nested_config.val_a', '333'])
-    sys.argv.extend(['--coqpit.mylist_with_default.0.val_a', '222'])
-    sys.argv.extend(['--coqpit.mylist_with_default.1.val_a', '111'])
+if __name__ == "__main__":
+    sys.argv.extend(["--coqpit.val_req", "this is different"])
+    sys.argv.extend(["--coqpit.val_a", "222"])
+    sys.argv.extend(["--coqpit.val_b", "999"])
+    sys.argv.extend(["--coqpit.nested_config.val_a", "333"])
+    sys.argv.extend(["--coqpit.mylist_with_default.0.val_a", "222"])
+    sys.argv.extend(["--coqpit.mylist_with_default.1.val_a", "111"])
     main()
 ```
 
 ## Development
 
-Install the pre-commit hook to automatically check your commits for style and hinting issues:
+Install the [prek](https://prek.j178.dev/) pre-commit hook to automatically check your commits for style and lint issues:
 
 ```bash
-uv run pre-commit install
+uv run prek install
 ```

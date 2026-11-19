@@ -52,7 +52,7 @@ def test_simple_config(tmp_path: Path) -> None:
     assert config.get("val_a", -1) == 10
 
     # setting non-field attributes
-    config.non_member = 5  # type: ignore[attr-defined]
+    config.non_member = 5  # ty: ignore[unresolved-attribute]
     assert "non_member" not in config
     assert not config.has("non_member")
     assert config.get("non_member", -1) == -1

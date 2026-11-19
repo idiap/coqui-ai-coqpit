@@ -24,9 +24,9 @@ class NestedConfig(Coqpit):
     val_e: int | None = None
     val_f: str = "Coqpit is great!"
     sc_list: list[SimpleConfig] | None = None
-    sc: SimpleConfig = field(default_factory=lambda: SimpleConfig())
+    sc: SimpleConfig = field(default_factory=SimpleConfig)
     sc_optional: SimpleConfig | None = None
-    sc_optional2: SimpleConfig | None = field(default_factory=lambda: SimpleConfig())
+    sc_optional2: SimpleConfig | None = field(default_factory=SimpleConfig)
     union_var: list[SimpleConfig] | SimpleConfig = field(default_factory=lambda: [SimpleConfig(), SimpleConfig()])
 
     def check_values(self) -> None:

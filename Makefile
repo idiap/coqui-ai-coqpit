@@ -8,10 +8,10 @@ test:	## run tests.
 	uv run coverage run && uv run coverage report
 
 lint:	## run ruff format and lint
-	uv run pre-commit run --all-files
+	uv run prek run --all-files
 
 install:	## install 👩‍✈️ Coqpit for development.
 	uv sync --all-extras
-	uv run pre-commit install
+	uv run prek install
 
 testlint: test lint

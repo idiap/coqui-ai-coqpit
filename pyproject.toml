@@ -4,10 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "coqpit-config"
-version = "0.2.5"
+version = "0.2.6"
 description = "Simple (maybe too simple), light-weight config management through python data-classes."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
     {name = "Eren Gölge", email = "egolge@coqui.ai"}
@@ -18,11 +18,11 @@ maintainers = [
 classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Operating System :: POSIX :: Linux",
@@ -36,10 +36,10 @@ dependencies = [
 [dependency-groups]
 dev = [
     "coverage>=7",
-    "mypy==1.19.1",
-    "pre-commit>=4",
+    "prek>=0.5",
     "pytest>=9",
-    "ruff==0.14.10",
+    "ruff==0.17.1",
+    "ty==0.0.89",
 ]
 
 [project.urls]
@@ -53,7 +53,7 @@ required-version = ">=0.5.0"
 exclude = [
     "/.github",
     "/.gitignore",
-    "/.pre-commit-config.yaml",
+    "/prek.toml",
     "/Makefile",
     "/tests",
 ]
@@ -75,10 +75,12 @@ line-length = 120
 lint.select = ["ALL"]
 lint.ignore = [
     "ANN401",
+    "CPY001",
     "D104",
     "FIX",
     "TD",
 ]
+lint.preview = true
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -88,6 +90,7 @@ convention = "google"
     "D",
     "FA100",
     "FBT001",
+    "PLC2701",
     "PLR2004",
     "S101",
     "SLF001",
